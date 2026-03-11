@@ -3,7 +3,18 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
+
+// Pastikan env production ada
+if (!process.env.BETTER_AUTH_URL) {
+  throw new Error("❌ BETTER_AUTH_URL is not defined in environment variables");
+}
+
+if (!process.env.BETTER_AUTH_SECRET) {
+  throw new Error(
+    "❌ BETTER_AUTH_SECRET is not defined in environment variables",
+  );
+}
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -15,9 +26,10 @@ export const auth = betterAuth({
       verification: schema.verification,
     },
   }),
+
   basePath: "/auth",
-  baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3001",
-  secret: process.env.BETTER_AUTH_SECRET ?? "fallback-secret-change-me",
+  baseURL: process.env.BETTER_AUTH_URL,
+  secret: process.env.BETTER_AUTH_SECRET,
   trustHost: true,
 
   emailAndPassword: {
@@ -27,7 +39,6 @@ export const auth = betterAuth({
   // ─── Database Hooks ────────────────────────────────────────────────────────
   databaseHooks: {
     account: {
-      // Pemicu saat pendaftaran baru (Register)
       create: {
         after: async (acc) => {
           try {
@@ -36,14 +47,15 @@ export const auth = betterAuth({
                 .update(schema.user)
                 .set({ password: acc.password })
                 .where(eq(schema.user.id, acc.userId));
-              console.log("✅ Berhasil menyalin password ke tabel USER!");
+
+              console.log("✅ Password synced to USER table");
             }
           } catch (err) {
-            console.error("❌ Gagal Sinkronisasi Password Baru:", err);
+            console.error("❌ Failed syncing new password:", err);
           }
         },
       },
-      // Pemicu saat password diubah (Reset Password via auth.api.changePassword)
+
       update: {
         after: async (acc) => {
           try {
@@ -52,9 +64,11 @@ export const auth = betterAuth({
                 .update(schema.user)
                 .set({ password: acc.password })
                 .where(eq(schema.user.id, acc.userId));
+
+              console.log("✅ Password update synced");
             }
           } catch (err) {
-            console.error("❌ Gagal Sinkronisasi Perubahan Password:", err);
+            console.error("❌ Failed syncing password update:", err);
           }
         },
       },
@@ -72,9 +86,10 @@ export const auth = betterAuth({
         }
       : {},
 
+  // ─── Trusted Origins (CORS + Auth) ─────────────────────────────────────────
   trustedOrigins: [
-    process.env.FRONTEND_URL ?? "http://localhost:5173",
     "https://moneymind-alpha.vercel.app",
+    process.env.FRONTEND_URL ?? "http://localhost:5173",
   ],
 });
 

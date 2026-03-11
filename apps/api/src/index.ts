@@ -29,6 +29,7 @@ app.use((req, res, next) => {
 // Use app.use('/auth') so Express strips the /auth prefix correctly.
 // The betterAuth() server config has basePath: '/auth', so Better Auth's
 // internal router correctly handles the stripped path (e.g. /sign-in/email).
+app.options("/auth/*", cors(corsOptions));
 app.all("/auth/*", toNodeHandler(auth));
 
 // ─── Body Parsing ─────────────────────────────────────────────────────────────
