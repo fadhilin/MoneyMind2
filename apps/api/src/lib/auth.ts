@@ -18,6 +18,7 @@ export const auth = betterAuth({
   basePath: "/auth",
   baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3001",
   secret: process.env.BETTER_AUTH_SECRET ?? "fallback-secret-change-me",
+  trustHost: true,
 
   emailAndPassword: {
     enabled: true,
