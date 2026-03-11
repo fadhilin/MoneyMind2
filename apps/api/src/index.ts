@@ -12,12 +12,13 @@ const corsOptions: cors.CorsOptions = {
   // Kita masukkan link Vercel kamu secara manual di sini
   origin: ["https://moneymind-alpha.vercel.app", "http://localhost:5173"],
   credentials: true,
-  allowedHeaders: ["Content-Type", "Authorization", "Cookie"], // Tambahkan 'Cookie' untuk keamanan extra
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 };
 
 // ─── CORS — applied globally before any handler ──────────────────────────────
 app.use(cors(corsOptions));
+// Handle preflight requests for all routes
+app.options("*", cors(corsOptions));
 
 app.use((req, res, next) => {
   console.log(`[REQ] ${req.method} ${req.url}`, req.query);
