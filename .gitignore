@@ -1,0 +1,63 @@
+# ─── Dependencies ─────────────────────────────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+
+# ─── Environment Variables (JANGAN pernah di-commit!) ─────────────────────────
+.env
+.env.local
+.env.development
+.env.production
+.env.staging    
+apps/api/.env
+apps/web/.env
+
+# ─── Build Output ─────────────────────────────────────────────────────────────
+dist/
+build/
+out/
+.output/
+apps/web/dist/
+apps/api/dist/
+
+# ─── Database / Drizzle ───────────────────────────────────────────────────────
+drizzle/meta/
+*.db
+*.sqlite
+*.sqlite3
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ─── Editor / OS ──────────────────────────────────────────────────────────────
+.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── TypeScript ───────────────────────────────────────────────────────────────
+*.tsbuildinfo
+
+# ─── Cache ────────────────────────────────────────────────────────────────────
+.cache/
+.turbo/
+.eslintcache
+.parcel-cache/
+.vite/
+
+# ─── Diagnostic Scripts (tidak perlu di production) ──────────────────────────
+apps/api/src/db/check-tables.ts
+apps/api/src/db/push-schema.ts
+apps/api/src/db/recreate-transactions.ts
+apps/api/src/db/migrate.ts
+
+# ─── Misc ─────────────────────────────────────────────────────────────────────
+*.zip
+*.tar.gz
+coverage/

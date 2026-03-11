@@ -1,0 +1,15 @@
+{
+  "name": "financecontrol",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+"scripts": {
+  "dev": "cd apps/web && npx vite --force-color"
+},
+  "overrides": {
+    "esbuild": "0.25.0"
+  }
+}
