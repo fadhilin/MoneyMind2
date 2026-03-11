@@ -1,62 +1,69 @@
-  import 'dotenv/config';
-  import express from 'express';
-  import cors from 'cors';
-  import { toNodeHandler } from 'better-auth/node';
-  import { auth } from './lib/auth.js';
-  import apiRouter from './routes/index.js';
-  import path from 'path';
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
+import { toNodeHandler } from "better-auth/node";
+import { auth } from "./lib/auth.js";
+import apiRouter from "./routes/index.js";
+import path from "path";
 
-  const app = express();
-  const PORT = process.env.PORT ?? 3001;
+const app = express();
+const PORT = process.env.PORT ?? 3001;
+const corsOptions: cors.CorsOptions = {
+  // Kita masukkan link Vercel kamu secara manual di sini
+  origin: ["https://moneymind-alpha.vercel.app", "http://localhost:5173"],
+  credentials: true,
+  allowedHeaders: ["Content-Type", "Authorization", "Cookie"], // Tambahkan 'Cookie' untuk keamanan extra
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+};
 
-  const corsOptions: cors.CorsOptions = {
-    origin: process.env.FRONTEND_URL ?? 'http://localhost:5173',
-    credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  };
+// ─── CORS — applied globally before any handler ──────────────────────────────
+app.use(cors(corsOptions));
 
-  // ─── CORS — applied globally before any handler ──────────────────────────────
-  app.use(cors(corsOptions));
-  
-  app.use((req, res, next) => {
-    console.log(`[REQ] ${req.method} ${req.url}`, req.query);
-    next();
-  });
+app.use((req, res, next) => {
+  console.log(`[REQ] ${req.method} ${req.url}`, req.query);
+  next();
+});
 
-  // ─── Better Auth ──────────────────────────────────────────────────────────────
-  // Use app.use('/auth') so Express strips the /auth prefix correctly.
-  // The betterAuth() server config has basePath: '/auth', so Better Auth's
-  // internal router correctly handles the stripped path (e.g. /sign-in/email).
- app.all('/auth/*', toNodeHandler(auth));
- 
-  // ─── Body Parsing ─────────────────────────────────────────────────────────────
-  app.use(express.json());
+// ─── Better Auth ──────────────────────────────────────────────────────────────
+// Use app.use('/auth') so Express strips the /auth prefix correctly.
+// The betterAuth() server config has basePath: '/auth', so Better Auth's
+// internal router correctly handles the stripped path (e.g. /sign-in/email).
+app.all("/auth/*", toNodeHandler(auth));
 
-  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+// ─── Body Parsing ─────────────────────────────────────────────────────────────
+app.use(express.json());
 
-  // ─── Health Check ─────────────────────────────────────────────────────────────
-  app.get('/health', (_req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
-  });
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
-  // ─── API v1 ───────────────────────────────────────────────────────────────────
-  app.use('/api/v1', apiRouter);
+// ─── Health Check ─────────────────────────────────────────────────────────────
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
 
-  // ─── 404 Catch-all ───────────────────────────────────────────────────────────
-  app.use((_req, res) => {
-    res.status(404).json({ error: 'Not Found' });
-  });
+// ─── API v1 ───────────────────────────────────────────────────────────────────
+app.use("/api/v1", apiRouter);
 
-  // ─── Global Error Handler ─────────────────────────────────────────────────────
-  app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+// ─── 404 Catch-all ───────────────────────────────────────────────────────────
+app.use((_req, res) => {
+  res.status(404).json({ error: "Not Found" });
+});
+
+// ─── Global Error Handler ─────────────────────────────────────────────────────
+app.use(
+  (
+    err: Error,
+    _req: express.Request,
+    res: express.Response,
+    _next: express.NextFunction,
+  ) => {
     console.error(err.stack);
-    res.status(500).json({ error: 'Internal Server Error' });
-  });
+    res.status(500).json({ error: "Internal Server Error" });
+  },
+);
 
-  app.listen(PORT, () => {
-    console.log(`🚀 FinanceControl API running at http://localhost:${PORT}`);
-    console.log(`   Auth:   http://localhost:${PORT}/auth`);
-    console.log(`   API:    http://localhost:${PORT}/api/v1`);
-    console.log(`   Health: http://localhost:${PORT}/health`);
-  });
+app.listen(PORT, () => {
+  console.log(`🚀 FinanceControl API running at http://localhost:${PORT}`);
+  console.log(`   Auth:   http://localhost:${PORT}/auth`);
+  console.log(`   API:    http://localhost:${PORT}/api/v1`);
+  console.log(`   Health: http://localhost:${PORT}/health`);
+});
