@@ -35,7 +35,6 @@ const Savings: React.FC = () => {
   const realIncome = dailySummary?.realIncome ?? 0;
   const safetySpend = monthSummary?.safetySpend ?? 0;
   
-  const monthlyIncome = monthSummary?.realIncome ?? 0;
   const remainingBudget = monthSummary?.globalBalance ?? 0;
 
   const [isModalOpen, setIsModalOpen] = useState(false);

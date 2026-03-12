@@ -4,6 +4,16 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import App from './App.tsx';
 import './index.css';
+import { registerSW } from 'virtual:pwa-register';
+
+registerSW({
+  onNeedRefresh() {
+    // Bisa dikosongkan karena kamu pakai 'autoUpdate' di vite.config
+  },
+  onOfflineReady() {
+    console.log('MoneyMind sudah di-cache dan siap digunakan tanpa internet!');
+  },
+});
 
 const queryClient = new QueryClient({
   defaultOptions: {

@@ -17,8 +17,11 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: "autoUpdate", // Aplikasi langsung update saat ada perubahan di GitHub
-      includeAssets: ["favicon.ico", "apple-touch-icon.png", "mask-icon.svg"],
+      registerType: "autoUpdate",
+
+      // UBAH BAGIAN INI: Sesuaikan dengan aset statis yang benar-benar ada
+      includeAssets: ["logo.png", "vite.svg"],
+
       manifest: {
         name: "MoneyMind Finance App",
         short_name: "MoneyMind",
@@ -39,17 +42,20 @@ export default defineConfig({
             src: "pwa-512x512.png",
             sizes: "512x512",
             type: "image/png",
-            purpose: "any maskable", // Agar ikon PWA terlihat bagus di semua Android launcher
+            purpose: "any maskable",
           },
         ],
       },
       devOptions: {
-        enabled: true, // Supaya fitur PWA tetap aktif saat Anda menjalankan 'npm run dev'
+        enabled: true,
+      },
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
+        cleanupOutdatedCaches: true,
       },
     }),
   ],
   define: {
-    // Menyuntikkan variabel global __APP_VERSION__
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
 });
