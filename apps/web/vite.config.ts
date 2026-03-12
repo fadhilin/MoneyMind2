@@ -18,15 +18,15 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-
-      // UBAH BAGIAN INI: Sesuaikan dengan aset statis yang benar-benar ada
       includeAssets: ["logo.png", "vite.svg"],
-
       manifest: {
         name: "MoneyMind Finance App",
         short_name: "MoneyMind",
         description: "Aplikasi manajemen keuangan pribadi",
         theme_color: "#ffffff",
+        background_color: "#ffffff", // Tambahkan ini agar Splash Screen rapi
+        display: "standalone", // WAJIB: Agar bar URL browser hilang
+        orientation: "portrait", // Opsional: Mengunci posisi layar HP
         icons: [
           {
             src: "pwa-192x192.png",
@@ -50,6 +50,7 @@ export default defineConfig({
         enabled: true,
       },
       workbox: {
+        // Ini yang mendownload semua file aplikasi ke memori HP
         globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
         cleanupOutdatedCaches: true,
       },
