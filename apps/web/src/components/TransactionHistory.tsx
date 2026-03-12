@@ -3,10 +3,9 @@ import { useTransactions } from '../hooks/useTransactions';
 import { useGlobalDate } from '../hooks/useGlobalDate';
 
 const TransactionHistory = () => {
-  const [globalDate] = useGlobalDate();
-  const { data } = useTransactions({ date: globalDate });
+  const { data } = useTransactions({}); // No date filter for general history
   const transactions = data?.data ?? [];
-  const recentTransactions = transactions.slice(0, 5);
+  const recentTransactions = transactions.slice(0, 10);
 
   return (
     <div className="glass-card p-6 md:p-8 rounded-3xl md:rounded-4xl bg-white dark:bg-black border border-slate-200 dark:border-white/10 shadow-sm">

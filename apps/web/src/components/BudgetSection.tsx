@@ -5,7 +5,7 @@ import { useGlobalDate } from '../hooks/useGlobalDate';
 const BudgetSection = () => {
   const [globalDate] = useGlobalDate();
   const month = globalDate.slice(0, 7);
-  const { data: budgets = [] } = useBudgets(month, globalDate);
+  const { data: budgets = [] } = useBudgets(month);
 
   const displayBudgets = budgets.slice(0, 3);
 

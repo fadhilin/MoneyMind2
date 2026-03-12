@@ -94,7 +94,7 @@ const Header = ({ darkMode, isSidebarOpen = false, onMenuClick }: HeaderProps) =
     setGlobalDate(newDate.toISOString().split('T')[0]);
   };
 
-  const displayName = user?.name ?? user?.email?.split('@')[0] ?? 'Pengguna';
+  const displayName = user?.name ?? 'Pengguna';
   const { activeNotifications, notificationsEnabled } = useActiveNotifications();
   const notifCount = activeNotifications.length;
   const hasDanger = activeNotifications.some(n => n.type === 'danger');

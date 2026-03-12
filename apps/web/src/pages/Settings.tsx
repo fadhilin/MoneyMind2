@@ -1,8 +1,8 @@
-import { useNavigate } from 'react-router-dom';
 import { useState, useRef, type Dispatch, type SetStateAction } from 'react';
-import { authClient, signOut } from '../lib/auth-client';
+import { signOut } from '../lib/auth-client';
 import { useSettings, useUpdateSettings } from '../hooks/useSettings';
 import { useAuth } from '../hooks/useAuth';
+import { db } from '../lib/db';
 
 interface SettingsProps {
   darkMode: boolean;
@@ -10,7 +10,6 @@ interface SettingsProps {
 }
 
 const Settings = ({ darkMode, setDarkMode }: SettingsProps) => {
-  const navigate = useNavigate();
   const { data: settings, isLoading } = useSettings();
   const updateSettings = useUpdateSettings();
   const { user } = useAuth();
@@ -23,10 +22,9 @@ const Settings = ({ darkMode, setDarkMode }: SettingsProps) => {
 
   const notif = settings?.notificationsEnabled ?? true;
   const userName = user?.name || 'User';
-  const userEmail = user?.email || '';
   
-  // Prioritaskan gambar dari database, fallback ke ui-avatars dengan parameter length=2
-  const avatarUrl = user?.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=7F5AF0&color=fff&size=128&length=2`;
+  // Prioritaskan gambar dari database, fallback ke ui-avatars
+  const avatarUrl = user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=7F5AF0&color=fff&size=128&length=2`;
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
   const handleNotifToggle = () => {
@@ -35,8 +33,8 @@ const Settings = ({ darkMode, setDarkMode }: SettingsProps) => {
 
   const handleLogout = async () => {
     localStorage.removeItem('globalDate');
+    localStorage.removeItem('has_profile');
     await signOut();
-    navigate('/login');
   };
 
   // Simpan perubahan nama
@@ -47,9 +45,9 @@ const Settings = ({ darkMode, setDarkMode }: SettingsProps) => {
     }
     
     setIsUpdating(true);
-    const { error } = await authClient.updateUser({ name: newName });
-    if (error) {
-      console.error("Gagal update nama:", error.message);
+    const existing = await db.profile.toCollection().first();
+    if (existing) {
+      await db.profile.update(existing.id, { name: newName.trim() });
     }
     setIsUpdating(false);
     setIsEditing(false);
@@ -62,47 +60,42 @@ const Settings = ({ darkMode, setDarkMode }: SettingsProps) => {
 
     setIsUpdating(true);
     try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64String = reader.result as string;
+        
+        const existing = await db.profile.toCollection().first();
+        if (existing) {
+          await db.profile.update(existing.id, { avatar: base64String });
+        }
+        
+        setIsUpdating(false);
+      };
+      reader.readAsDataURL(file);
+
+      // (Optional) Masih bisa push ke server di background jika mau
       const formData = new FormData();
       formData.append('avatar', file);
-
-      const uploadRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/v1/upload-profile`, {
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/v1/upload-profile`, {
         method: 'POST',
         body: formData,
-      });
-
-      if (!uploadRes.ok) throw new Error("Gagal upload gambar ke server");
-
-      const { imageUrl } = await uploadRes.json();
-
-const { error } = await authClient.updateUser({ image: imageUrl });
-
-if (!error) {
-  // Opsi A: Reload paksa (Paling aman untuk sinkronisasi Sidebar)
-  window.location.reload(); 
-  
-  // Opsi B: Jika ingin lebih halus tanpa reload, pastikan useSession() di Sidebar 
-  // mendapatkan trigger refetch.
-}
-      
-      if (error) throw new Error(error.message);
+      }).catch(err => console.error("Server upload failed, but local updated:", err));
 
     } catch (error) {
       console.error("Error upload foto:", error);
-    } finally {
       setIsUpdating(false);
     }
   };
 
   // Fungsi Hapus Foto
   const handleRemoveImage = async (e: React.MouseEvent) => {
-    e.stopPropagation(); // Mencegah memicu klik ke input file di belakangnya
+    e.stopPropagation();
     setIsUpdating(true);
     try {
-      // Set string kosong untuk menghapus gambar di database Better Auth
-      const { error } = await authClient.updateUser({ image: '' });
-      if (error) throw new Error(error.message);
-      
-      // Catatan: Idealnya kamu juga menembak endpoint backend untuk menghapus file fisik gambar di server Express
+      const existing = await db.profile.toCollection().first();
+      if (existing) {
+        await db.profile.update(existing.id, { avatar: '' });
+      }
     } catch (error) {
       console.error("Error hapus foto:", error);
     } finally {
@@ -142,7 +135,7 @@ if (!error) {
             />
 
             {/* Tombol Hapus: Hanya muncul jika user memiliki custom image */}
-            {user?.image && (
+            {user?.avatar && (
               <button
                 onClick={handleRemoveImage}
                 disabled={isUpdating}
@@ -191,9 +184,6 @@ if (!error) {
               </div>
             )}
 
-            {userEmail && (
-              <p className="text-xs md:text-sm text-black/50 dark:text-white/50 truncate mt-0.5 text-center lg:text-left">{userEmail}</p>
-            )}
             <div className="mt-2 flex justify-center lg:justify-start">
             </div>
           </div>
@@ -234,8 +224,8 @@ if (!error) {
             onClick={handleLogout}
             className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 dark:hover:bg-rose-500/30 rounded-xl text-xs md:text-sm font-black uppercase tracking-wider transition-all"
           >
-            <span className="material-symbols-outlined text-lg">logout</span>
-            Keluar dari Akun
+            <span className="material-symbols-outlined text-lg">delete_forever</span>
+            Hapus Semua Data Lokal
           </button>
         </div>
       </div>

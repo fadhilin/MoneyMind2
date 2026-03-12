@@ -204,17 +204,8 @@ const ReportSection: React.FC<ReportSectionProps> = ({ summary, budgetDist = [],
                 {(() => {
                   let data = [...summary.dailyExpenses];
                   
-                  // If it's a single day, create a simulated bell-curve like "wave" for realism
-                  if (data.length === 1) {
-                    const amt = data[0].amount;
-                    data = [
-                      { date: '', amount: amt * 0.1 },
-                      { date: '', amount: amt * 0.4 },
-                      { date: periodLabel || 'Total', amount: amt },
-                      { date: '', amount: amt * 0.6 },
-                      { date: '', amount: amt * 0.1 }
-                    ];
-                  }
+                  // If no data, show a flat line or better empty state
+                  if (data.length === 0) return null;
 
                   const maxAmt = Math.max(...data.map(d => d.amount), 1000);
                   // Round maxAmt up to the nearest logical step for Y-axis (e.g. nearest 1jt or 100rb)
@@ -297,9 +288,23 @@ const ReportSection: React.FC<ReportSectionProps> = ({ summary, budgetDist = [],
 
                         {/* X Axis Labels (selective) */}
                         {points.map((p, i) => {
-                          // Show only specific labels if too many points (e.g. for month)
-                          const skip = data.length > 15 ? i % 5 !== 0 : data.length > 7 ? i % 2 !== 0 : false;
-                          if (skip && i !== points.length - 1) return null;
+                          if (!p.date || p.date === '') return null;
+                          
+                          // Format label based on period
+                          let label = p.date;
+                          if (reportPeriod === 'weekly') {
+                            const d = new Date(p.date);
+                            label = d.toLocaleDateString('id-ID', { weekday: 'short' });
+                          } else if (reportPeriod === 'monthly') {
+                            label = p.date.split('-')[2]; // Just the day number
+                          } else if (reportPeriod === 'daily') {
+                            // Already hourly from service (e.g. "14:00")
+                            label = p.date;
+                          }
+
+                          // Show only specific labels if too many points
+                          const skip = data.length > 20 ? i % 5 !== 0 : data.length > 10 ? i % 2 !== 0 : false;
+                          if (skip && i !== points.length - 1 && i !== 0) return null;
                           
                           return (
                             <text 
@@ -307,7 +312,7 @@ const ReportSection: React.FC<ReportSectionProps> = ({ summary, budgetDist = [],
                               className="text-[8px] font-bold fill-slate-400" 
                               textAnchor="middle"
                             >
-                              {p.date}
+                              {label}
                             </text>
                           );
                         })}
@@ -344,7 +349,9 @@ const ReportSection: React.FC<ReportSectionProps> = ({ summary, budgetDist = [],
                                 className="hidden group-hover/point:block pointer-events-none"
                               >
                                 <div className="bg-black/90 backdrop-blur-xl rounded-xl p-2 border border-white/20 text-center shadow-2xl">
-                                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">{p.date}</p>
+                                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">
+                                    {new Date(p.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                                  </p>
                                   <p className="text-[11px] text-white font-black whitespace-nowrap">Rp{p.amount.toLocaleString('id-ID')}</p>
                                 </div>
                               </foreignObject>

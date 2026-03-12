@@ -16,9 +16,9 @@ const Budget: React.FC = () => {
   const [globalDate] = useGlobalDate();
   const selectedMonth = globalDate.slice(0, 7);
 
-  const { data: budgets = [], isLoading } = useBudgets(selectedMonth, globalDate);
-  const { data: summary } = useMonthlySummary({ month: selectedMonth, date: globalDate });
+  const { data: budgets = [], isLoading } = useBudgets(selectedMonth);
   const { data: monthSummary } = useMonthlySummary({ month: selectedMonth });
+  const { data: dailySummary } = useMonthlySummary({ month: selectedMonth, date: globalDate });
 
   const createBudget = useCreateBudget();
   const updateBudget = useUpdateBudget();
@@ -77,12 +77,12 @@ const listIcons = [
     { id: "redeem", label: "Hadiah" }
   ];
 
-  const realIncome = summary?.realIncome ?? 0; // Pure daily realIncome inputted
-  const adjustedExpense = summary?.adjustedExpense ?? 0; // Pure daily expenses
-  const safetySpend = monthSummary?.safetySpend ?? 0;
+  const realIncome = dailySummary?.realIncome ?? 0; // Pure daily realIncome
+  const adjustedExpense = dailySummary?.adjustedExpense ?? 0; // Pure daily expenses
+  const safetySpend = dailySummary?.globalBalance ?? 0;
   
   const monthlyIncome = monthSummary?.realIncome ?? 0;
-  const remainingBudget = summary?.globalBalance ?? 0;
+  const remainingBudget = dailySummary?.globalBalance ?? 0; // Sync with wallet/global balance
 
   const handleAddCategory = () => {
     if (!newCatName || !newCatLimit) return alert('Lengkapi data');
@@ -168,7 +168,7 @@ const listIcons = [
                     updateBudget.mutate({ id, input });
                   });
                   draftDeletes.forEach(id => {
-                    deleteBudget.mutate(id);
+                    deleteBudget.mutate({ id, month: selectedMonth });
                   });
                   setDraftUpdates({});
                   setDraftDeletes(new Set());
@@ -242,16 +242,13 @@ const listIcons = [
       ) : (
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
           {[...budgets].sort((a, b) => {
-            if (a.category === 'Makan & Minum') return -1;
-            if (b.category === 'Makan & Minum') return 1;
-            if (a.category === 'Transportasi') return -1;
-            if (b.category === 'Transportasi') return 1;
-            
-            // Urutkan kategori kustom berdasarkan waktu pembuatan (yang paling baru di akhir)
-            // agar saat menambah kategori baru, card-nya muncul di paling belakang.
-            // Urutkan kategori kustom secara kronologis seiring terdaftarnya (berdasarkan index aslinya).
-            // Dengan return 0, stable sort mempertahankannya posisinya di database
-            return 0;
+            const defaults = ['Makan & Minum', 'Transportasi'];
+            const aIdx = defaults.indexOf(a.category);
+            const bIdx = defaults.indexOf(b.category);
+            if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
+            if (aIdx !== -1) return -1;
+            if (bIdx !== -1) return 1;
+            return a.id.localeCompare(b.id);
           }).map((b: BudgetType) => {
             const percent = b.limit > 0 ? Math.min(100, Math.round((b.spent / b.limit) * 100)) : 0;
             return (
@@ -276,7 +273,7 @@ const listIcons = [
                         </span>
                       </button>
                     ) : (
-                      <div className="p-1 w-6 h-6"></div> /* placeholder to keep layout */
+                      <div className="p-1 px-2 bg-slate-100 dark:bg-white/5 rounded text-[8px] font-bold text-slate-400">STATIC</div>
                     )
                   ) : (
                     <span className="text-[9px] md:text-[10px] font-black px-2 py-0.5 md:py-1 bg-primary/10 text-primary rounded-full">{percent}%</span>
@@ -287,7 +284,7 @@ const listIcons = [
                     <input
                       type="text"
                       className="text-base md:text-lg font-bold w-full bg-primary/5 border border-primary/20 rounded px-1 text-primary focus:outline-none"
-                      defaultValue={draftUpdates[b.id]?.category ?? b.category}
+                      value={draftUpdates[b.id]?.category ?? b.category}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                         setDraftUpdates(prev => ({
                           ...prev,
@@ -311,7 +308,7 @@ const listIcons = [
                       <input
                         type="number"
                         className="w-20 md:w-24 bg-primary/5 border border-primary/20 rounded px-1 text-right text-primary focus:outline-none h-7 md:h-auto"
-                        defaultValue={draftUpdates[b.id]?.limitAmount ?? b.limit}
+                        value={draftUpdates[b.id]?.limitAmount ?? b.limit}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                           const val = parseInt(e.target.value) || 0;
                           setDraftUpdates(prev => ({

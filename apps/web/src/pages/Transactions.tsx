@@ -13,7 +13,7 @@ const Transactions: React.FC = () => {
 
   const { data, isLoading } = useTransactions({
     month: selectedMonth,
-    date: globalDate || undefined,
+    // Remover date filter so it shows the whole month history
     type: filter === 'all' ? undefined : filter,
     search: search || undefined,
   });

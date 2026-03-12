@@ -7,15 +7,10 @@ const api = axios.create({
   withCredentials: true, // send session cookies automatically
 });
 
-// Redirect to /login on unauthenticated responses
+// Response interceptor - no longer redirecting to /login in offline mode
 api.interceptors.response.use(
   (res) => res,
-  (error) => {
-    if (error.response?.status === 401) {
-      window.location.href = "/login";
-    }
-    return Promise.reject(error);
-  },
+  (error) => Promise.reject(error),
 );
 
 export default api;

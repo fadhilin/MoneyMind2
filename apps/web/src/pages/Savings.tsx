@@ -23,6 +23,7 @@ const Savings: React.FC = () => {
 
   const { data: savings = [], isLoading } = useSavings();
   const { data: monthSummary } = useMonthlySummary({ month: selectedMonth });
+  const { data: dailySummary } = useMonthlySummary({ month: selectedMonth, date: globalDate });
 
   const createSaving = useCreateSaving();
   const updateSaving = useUpdateSaving();
@@ -31,12 +32,11 @@ const Savings: React.FC = () => {
   const withdrawSaving = useWithdrawSaving();
   const autoAllocate = useAutoAllocateSaving();
 
-  const realIncome = monthSummary?.realIncome ?? 0;
+  const realIncome = dailySummary?.realIncome ?? 0;
   const safetySpend = monthSummary?.safetySpend ?? 0;
   
   const monthlyIncome = monthSummary?.realIncome ?? 0;
-  const monthlyRemaining = monthlyIncome - (monthSummary?.adjustedExpense ?? 0);
-  const remainingBudget = monthlyRemaining;
+  const remainingBudget = monthSummary?.globalBalance ?? 0;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
@@ -133,7 +133,7 @@ const Savings: React.FC = () => {
                   <button onClick={() => handleOpenEdit(saving)} className="p-1.5 md:p-2 bg-slate-100 dark:bg-white/10 rounded-lg hover:text-primary transition-colors text-black dark:text-white">
                     <span className="material-symbols-outlined text-xs md:text-sm">edit</span>
                   </button>
-                  <button onClick={() => deleteSaving.mutate({ id: saving.id, date: todayDate })} className="p-1.5 md:p-2 bg-slate-100 dark:bg-white/10 rounded-lg hover:text-rose-500 transition-colors text-black dark:text-white">
+                  <button onClick={() => deleteSaving.mutate({ id: saving.id, date: globalDate })} className="p-1.5 md:p-2 bg-slate-100 dark:bg-white/10 rounded-lg hover:text-rose-500 transition-colors text-black dark:text-white">
                     <span className="material-symbols-outlined text-xs md:text-sm">delete</span>
                   </button>
                 </div>

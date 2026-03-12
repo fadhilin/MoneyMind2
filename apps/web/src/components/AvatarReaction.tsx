@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 
 const AvatarReaction: React.FC = () => {
   const { user } = useAuth();
-  const displayName = user?.name ?? user?.email?.split('@')[0] ?? '';
+  const displayName = user?.name ?? 'User';
   const { data: avatarData, isLoading } = useAvatarStatus();
   const status = avatarData?.status || 'NORMAL';
 
@@ -33,11 +33,20 @@ const AvatarReaction: React.FC = () => {
       case 'OVER_BUDGET':
         return {
           icon: 'sentiment_very_dissatisfied',
-          color: 'text-blue-500',
-          bg: 'bg-blue-100 dark:bg-blue-900/30',
-          label: 'Huaa hemat dong..',
-          animation: 'animate-float',
+          color: 'text-rose-500',
+          bg: 'bg-rose-100 dark:bg-rose-900/30',
+          label: 'Anjir anggaran kamu bocor!',
+          animation: 'animate-shake',
           effect: 'rain'
+        };
+      case 'BUDGET_OVER_50':
+        return {
+          icon: 'sentiment_dissatisfied',
+          color: 'text-amber-500',
+          bg: 'bg-amber-100 dark:bg-amber-900/30',
+          label: 'Waspada, budget sudah 50%!',
+          animation: 'animate-float',
+          effect: 'sweat'
         };
       case 'NO_TRANSACTION':
         return {

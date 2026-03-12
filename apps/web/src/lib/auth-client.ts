@@ -1,10 +1,22 @@
-import { createAuthClient } from "better-auth/react";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db } from "./db";
 
-export const authClient = createAuthClient({
-  baseURL:
-    import.meta.env.VITE_BETTER_AUTH_URL ||
-    "https://moneymind-production.up.railway.app/auth",
-  basePath: "/auth", // matches app.all('/auth/*splat') in the server
-});
+export function useSession() {
+  const profile = useLiveQuery(() => db.profile.toCollection().first(), [], "LOADING" as const);
+  
+  const isPending = (profile as unknown) === "LOADING";
+  const user = isPending ? undefined : ((profile as unknown) === "LOADING" ? null : profile);
 
-export const { signIn, signOut, signUp, useSession } = authClient;
+  return {
+    data: (user && (user as unknown) !== "LOADING") ? { user: user as NonNullable<typeof profile> } : (user === undefined ? undefined : null),
+    isPending,
+  };
+}
+
+export const signOut = async () => {
+  if (confirm("Yakin ingin menghapus seluruh data lokal? Semua data offline Anda akan hilang dari browser ini.")) {
+    await db.delete();
+    window.location.href = "/setup";
+  }
+};
+

@@ -107,48 +107,67 @@ const Reports: React.FC = () => {
     const todayDate = new Date().toISOString().split('T')[0];
     const csvRows: string[] = [];
 
-    // 1. Ringkasan
-    csvRows.push('RINGKASAN KEUANGAN');
-    csvRows.push(`Periode;${periodParams.label}`);
-    csvRows.push(`Net Balance;${totalBalance}`);
-    csvRows.push(`Real Income;${totalIncome}`);
-    csvRows.push(`Adjusted Expense;${totalExpense}`);
-    csvRows.push(`Efisiensi;${efficiency}%`);
-    csvRows.push(`Rasio Pengeluaran;${ratioPercent}%`);
+    // Helper to escape CSV values
+    const esc = (v: any) => {
+      const s = String(v ?? '');
+      if (s.includes(';') || s.includes('"') || s.includes('\n')) {
+        return `"${s.replace(/"/g, '""')}"`;
+      }
+      return s;
+    };
+
+    // 1. Header & Identitas
+    csvRows.push(`${esc('LAPORAN KEUANGAN')} - ${esc(user?.name || 'User')}`);
+    csvRows.push(`${esc('Periode')};${esc(periodParams.label)}`);
+    csvRows.push(`${esc('Tanggal Unduh')};${esc(new Date().toLocaleDateString('id-ID'))}`);
     csvRows.push('');
     
-    // 2. Budget
-    csvRows.push('DISTRIBUSI ANGGARAN');
+    // 2. Ringkasan Keuangan (High Level)
+    csvRows.push(esc('RINGKASAN UTAMA'));
+    csvRows.push(`${esc('Pemasukan')};${esc(totalIncome)}`);
+    csvRows.push(`${esc('Pengeluaran')};${esc(totalExpense)}`);
+    csvRows.push(`${esc('Selisih (Net)')};${esc(totalBalance)}`);
+    csvRows.push(`${esc('Efisiensi')};${esc(efficiency + '%')}`);
+    csvRows.push(`${esc('Saldo Saat Ini (Dompet)')};${esc(summary?.globalBalance || 0)}`);
+    csvRows.push('');
+    
+    // 3. Distribusi Anggaran
+    csvRows.push(esc('DISTRIBUSI ANGGARAN (PENGELUARAN PER KATEGORI)'));
     if (budgetDist.length > 0) {
-      csvRows.push('Kategori;Batas;Terpakai;Sisa;Persentase');
+      csvRows.push(`${esc('Kategori')};${esc('Limit Bulanan')};${esc('Terpakai (Periode)')};${esc('Sisa Limit')};${esc('Persentase')}`);
       budgetDist.forEach(b => {
         const remaining = b.limit - b.spent;
-        csvRows.push(`${b.category};${b.limit};${b.spent};${remaining};${b.percent}%`);
+        csvRows.push(`${esc(b.category)};${esc(b.limit)};${esc(b.spent)};${esc(remaining)};${esc(b.percent.toFixed(1) + '%')}`);
       });
     } else {
-      csvRows.push('Belum ada data distribusi anggaran.');
+      csvRows.push(esc('Tidak ada data anggaran untuk periode ini.'));
     }
     csvRows.push('');
     
-    // 3. Breakdown
-    csvRows.push('BREAKDOWN TRANSAKSI');
+    // 4. Breakdown Transaksi (Detail Tipe)
+    csvRows.push(esc('BREAKDOWN DETAIL TRANSAKSI'));
     if (breakdown.length > 0) {
-      csvRows.push('Kategori;Tipe;Total (Rp);Jumlah Transaksi');
+      csvRows.push(`${esc('Kategori')};${esc('Tipe')};${esc('Total (Rp)')};${esc('Frekuensi')}`);
       breakdown.forEach(item => {
         const typeIndo = item.type === 'income' ? 'Pemasukan' : 'Pengeluaran';
-        csvRows.push(`${item.category};${typeIndo};${item.total};${item.count}`);
+        csvRows.push(`${esc(item.category)};${esc(typeIndo)};${esc(item.total)};${esc(item.count + 'x')}`);
       });
     } else {
-      csvRows.push('Belum ada transaksi.');
+      csvRows.push(esc('Tidak ada detail transaksi untuk periode ini.'));
     }
 
-    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + csvRows.join('\n');
+    // Wrap in Blob for better compatibility with different encodings
+    const csvString = csvRows.join('\r\n');
+    const blob = new Blob(['\uFEFF' + csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
     const link = document.createElement('a');
-    link.setAttribute('href', encodeURI(csvContent));
-    link.setAttribute('download', `laporan_keuangan_${todayDate}.csv`);
+    link.href = url;
+    link.setAttribute('download', `Laporan_${user?.name || 'User'}_${todayDate}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const handlePrev = () => {

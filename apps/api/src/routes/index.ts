@@ -12,6 +12,7 @@ import savingsRouter from './savings.routes.js';
 import reportsRouter from './reports.routes.js';
 import settingsRouter from './settings.routes.js';
 import authCustomRouter from './auth.routes.js';
+import syncRouter from './sync.routes.js';
 
 const router = Router();
 
@@ -70,6 +71,7 @@ router.use('/savings', savingsRouter);
 router.use('/reports', reportsRouter);
 router.use('/settings', settingsRouter);
 router.use('/auth-custom', authCustomRouter);
+router.use('/sync', syncRouter);
 
 export default router;
 export { toNodeHandler, auth };

@@ -1,16 +1,14 @@
-import { useSession, signIn, signOut, signUp } from '../lib/auth-client';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../lib/db';
 
 export function useAuth() {
-  const { data: session, isPending, error } = useSession();
+  const profile = useLiveQuery(() => db.profile.toCollection().first());
+  const isLoading = profile === undefined;
 
   return {
-    session,
-    user: session?.user ?? null,
-    isAuthenticated: !!session?.user,
-    isLoading: isPending,
-    error,
-    signIn,
-    signOut,
-    signUp,
+    session: profile ? { user: profile } : null,
+    user: profile ?? null,
+    isAuthenticated: !!profile,
+    isLoading,
   };
 }

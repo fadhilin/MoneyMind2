@@ -18,6 +18,8 @@ export function useCreateBudget() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [BUDGETS_KEY] });
       qc.invalidateQueries({ queryKey: ['reports'] });
+      qc.invalidateQueries({ queryKey: ['transactions'] });
+      qc.invalidateQueries({ queryKey: ['savings'] });
     },
   });
 }
@@ -30,6 +32,8 @@ export function useUpdateBudget() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [BUDGETS_KEY] });
       qc.invalidateQueries({ queryKey: ['reports'] });
+      qc.invalidateQueries({ queryKey: ['transactions'] });
+      qc.invalidateQueries({ queryKey: ['savings'] });
     },
   });
 }
@@ -37,11 +41,12 @@ export function useUpdateBudget() {
 export function useDeleteBudget() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => budgetService.deleteBudget(id),
+    mutationFn: ({ id, month }: { id: string; month?: string }) => budgetService.deleteBudget(id, month),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [BUDGETS_KEY] });
-      qc.invalidateQueries({ queryKey: ['transactions'] });
       qc.invalidateQueries({ queryKey: ['reports'] });
+      qc.invalidateQueries({ queryKey: ['transactions'] });
+      qc.invalidateQueries({ queryKey: ['savings'] });
     },
   });
 }
@@ -68,6 +73,7 @@ export function useWithdrawBudget() {
       qc.invalidateQueries({ queryKey: [BUDGETS_KEY] });
       qc.invalidateQueries({ queryKey: ['transactions'] });
       qc.invalidateQueries({ queryKey: ['reports'] });
+      qc.invalidateQueries({ queryKey: ['savings'] });
     },
   });
 }

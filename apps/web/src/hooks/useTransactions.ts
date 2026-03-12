@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as txService from '../services/transactions.service';
-import type { CreateTransactionInput, GetTransactionsResponse } from '../services/transactions.service';
-import api from '../lib/api';
+import type { CreateTransactionInput } from '../services/transactions.service';
 
 export const TRANSACTIONS_KEY = 'transactions';
 
@@ -15,22 +14,24 @@ export interface TransactionsFilters {
 export function useTransactions(filters: TransactionsFilters = {}) {
   return useQuery({
     queryKey: ['transactions', filters],
-    queryFn: async () => {
-      const res = await api.get<GetTransactionsResponse>('/transactions', { params: filters });
-      return res.data;
-    },
+    queryFn: () => txService.getTransactions(filters),
   });
 }
 
 export function useCreateTransaction() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: CreateTransactionInput) => txService.createTransaction(input),
+    mutationFn: (input: CreateTransactionInput) => {
+      const normalizedDate = input.date && input.date.length === 10 
+        ? `${input.date}T${new Date().toISOString().split('T')[1]}` 
+        : (input.date || new Date().toISOString());
+      return txService.createTransaction({ ...input, date: normalizedDate });
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [TRANSACTIONS_KEY] });
-      // Also invalidate reports since summary changes
       qc.invalidateQueries({ queryKey: ['reports'] });
       qc.invalidateQueries({ queryKey: ['budgets'] });
+      qc.invalidateQueries({ queryKey: ['savings'] });
     },
   });
 }

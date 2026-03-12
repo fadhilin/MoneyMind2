@@ -9,7 +9,7 @@ import Transactions from './pages/Transactions';
 import Budget from './pages/Budget';
 import Savings from './pages/Savings';
 import Reports from './pages/Reports';
-import Login from './pages/Login';
+import ProfileSetup from './pages/ProfileSetup';
 import Settings from './pages/Settings';
 
 // ─── Global Version Definition (For TS) ──────────────────────────────────────
@@ -19,77 +19,20 @@ declare const __APP_VERSION__: string;
 const Layout = ({ darkMode }: { darkMode: boolean }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [touchStartX, setTouchStartX] = useState<number | null>(null);
-  const [touchCurrentX, setTouchCurrentX] = useState<number | null>(null);
-
-  // Robust Background Scroll Lock
-  useEffect(() => {
-    if (sidebarOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => { document.body.style.overflow = ''; };
-  }, [sidebarOpen]);
-
-  // Handle Swipe Gesture for Overlay Area
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStartX(e.touches[0].clientX);
-    setTouchCurrentX(null);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (touchStartX === null) return;
-    setTouchCurrentX(e.touches[0].clientX);
-  };
-
-  const handleTouchEnd = () => {
-    if (touchStartX === null || touchCurrentX === null) {
-      setTouchStartX(null);
-      setTouchCurrentX(null);
-      return;
-    }
-
-    const swipeDistance = touchCurrentX - touchStartX;
-    // Close if swiped left more than 80px
-    if (swipeDistance < -80) {
-      setSidebarOpen(false);
-    }
-
-    setTouchStartX(null);
-    setTouchCurrentX(null);
-  };
 
   return (
     <div className="flex h-dvh overflow-hidden bg-background-light dark:bg-background-dark transition-colors duration-300">
-      {/* Sidebar - Desktop hidden lg, Mobile absolute/fixed */}
       <Sidebar 
         darkMode={darkMode} 
         isOpen={sidebarOpen} 
         onClose={() => setSidebarOpen(false)} 
         onOpenModal={() => {
           setIsModalOpen(true);
-          setSidebarOpen(false); // Auto close sidebar when modal opens
+          setSidebarOpen(false);
         }}
       />
       
-      {/* Overlay for mobile sidebar - Transparent but clickable & swipeable */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-        />
-      )}
-
-      <main 
-        className={`
-          flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 transition-all duration-300
-          ${sidebarOpen ? 'max-lg:blur-[2px] max-lg:overflow-hidden max-lg:touch-none max-lg:pointer-events-none select-none' : ''}
-        `}
-      >
+      <main className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 transition-all duration-300">
         <Header 
           darkMode={darkMode} 
           isSidebarOpen={sidebarOpen}
@@ -121,7 +64,7 @@ const ProtectedRoutes = ({ darkMode }: { darkMode: boolean }) => {
   }
 
   if (!session?.user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/setup" replace />;
   }
 
   return <Layout darkMode={darkMode} />;
@@ -130,24 +73,33 @@ const ProtectedRoutes = ({ darkMode }: { darkMode: boolean }) => {
 function App() {
   // ─── 1. Logic Cache Busting (Force Update) ──────────────────────────────────
   useEffect(() => {
-    const currentVersion = __APP_VERSION__;
-    const savedVersion = localStorage.getItem('app_version');
+    try {
+      const currentVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
+      const savedVersion = localStorage.getItem('app_version');
 
-    if (savedVersion !== currentVersion) {
-      console.log(`Update terdeteksi: v${savedVersion} -> v${currentVersion}`);
-      
-      // Simpan versi baru ke localStorage
-      localStorage.setItem('app_version', currentVersion);
-      
-      // Bersihkan cache lama dan reload paksa agar user dapat JS/CSS terbaru
-      window.location.reload();
+      if (savedVersion && savedVersion !== currentVersion) {
+        localStorage.setItem('app_version', currentVersion);
+        window.location.reload();
+      } else if (!savedVersion) {
+        localStorage.setItem('app_version', currentVersion);
+      }
+    } catch (e) {
+      console.warn("Version check failed:", e);
     }
+  }, []);
+
+  // ─── Offline Background Sync ──────────────────────────────────────────────────
+  useEffect(() => {
+    import('./lib/sync').then(({ startSync, stopSync }) => {
+      startSync();
+      return () => stopSync();
+    }).catch(err => console.error("Sync init failed:", err));
   }, []);
 
   // ─── Dark Mode Logic ────────────────────────────────────────────────────────
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     const savedTheme = localStorage.getItem('theme');
-    return savedTheme !== 'light'; // Default to true if not explicitly 'light'
+    return savedTheme !== 'light';
   });
 
   useEffect(() => {
@@ -163,25 +115,17 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route
-          path="/login"
-          element={<Login />}
-        />
-
+        <Route path="/setup" element={<ProfileSetup />} />
         <Route element={<ProtectedRoutes darkMode={darkMode} />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/transactions" element={<Transactions />} />
           <Route path="/budget" element={<Budget />} />
           <Route path="/savings" element={<Savings />} />
           <Route path="/reports" element={<Reports />} />
-          <Route
-            path="/settings"
-            element={<Settings darkMode={darkMode} setDarkMode={setDarkMode} />}
-          />
+          <Route path="/settings" element={<Settings darkMode={darkMode} setDarkMode={setDarkMode} />} />
         </Route>
-
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/setup" replace />} />
       </Routes>
     </Router>
   );

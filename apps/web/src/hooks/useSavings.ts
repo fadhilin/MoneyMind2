@@ -18,6 +18,8 @@ export function useCreateSaving() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [SAVINGS_KEY] });
       qc.invalidateQueries({ queryKey: ['reports'] });
+      qc.invalidateQueries({ queryKey: ['transactions'] });
+      qc.invalidateQueries({ queryKey: ['budgets'] });
     },
   });
 }
@@ -30,6 +32,8 @@ export function useUpdateSaving() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [SAVINGS_KEY] });
       qc.invalidateQueries({ queryKey: ['reports'] });
+      qc.invalidateQueries({ queryKey: ['transactions'] });
+      qc.invalidateQueries({ queryKey: ['budgets'] });
     },
   });
 }
@@ -42,6 +46,7 @@ export function useDeleteSaving() {
       qc.invalidateQueries({ queryKey: [SAVINGS_KEY] });
       qc.invalidateQueries({ queryKey: ['transactions'] });
       qc.invalidateQueries({ queryKey: ['reports'] });
+      qc.invalidateQueries({ queryKey: ['budgets'] });
     },
   });
 }
@@ -55,6 +60,7 @@ export function useDepositSaving() {
       qc.invalidateQueries({ queryKey: [SAVINGS_KEY] });
       qc.invalidateQueries({ queryKey: ['transactions'] });
       qc.invalidateQueries({ queryKey: ['reports'] });
+      qc.invalidateQueries({ queryKey: ['budgets'] });
     },
   });
 }
@@ -68,6 +74,7 @@ export function useWithdrawSaving() {
       qc.invalidateQueries({ queryKey: [SAVINGS_KEY] });
       qc.invalidateQueries({ queryKey: ['transactions'] });
       qc.invalidateQueries({ queryKey: ['reports'] });
+      qc.invalidateQueries({ queryKey: ['budgets'] });
     },
   });
 }
@@ -81,6 +88,7 @@ export function useAutoAllocateSaving() {
       qc.invalidateQueries({ queryKey: [SAVINGS_KEY] });
       qc.invalidateQueries({ queryKey: ['transactions'] });
       qc.invalidateQueries({ queryKey: ['reports'] });
+      qc.invalidateQueries({ queryKey: ['budgets'] });
     },
   });
 }

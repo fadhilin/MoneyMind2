@@ -7,7 +7,7 @@ const HeroSection = () => {
   const todayDate = new Date().toLocaleDateString('en-CA');
   const todayMonth = todayDate.slice(0, 7);
   
-  const { data: summary } = useMonthlySummary({ month: todayMonth, date: todayDate });
+  const { data: summary } = useMonthlySummary({ month: todayMonth });
 
 
   // Saldo Saat Ini -> Global Cumulative Balance
@@ -16,8 +16,7 @@ const HeroSection = () => {
   const localIncome = summary?.realIncome ?? 0;
   const localExpense = summary?.adjustedExpense ?? 0;
   const ratio = localIncome > 0 ? (localExpense / localIncome) * 100 : 0;
-  const { data: monthSummary } = useMonthlySummary({ month: todayMonth });
-  const safetySpend = monthSummary?.safetySpend ?? 0;
+  const safetySpend = summary?.safetySpend ?? 0;
 
   return (
     <div className="relative group">

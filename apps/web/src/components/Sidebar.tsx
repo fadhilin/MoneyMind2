@@ -81,13 +81,12 @@ const Sidebar = ({ darkMode, isOpen, onClose, onOpenModal }: SidebarProps) => {
 
   const handleLogout = async () => {
     localStorage.removeItem('globalDate');
+    localStorage.removeItem('has_profile'); // Clear fast-path flag
     await signOut();
-    navigate('/login');
   };
 
   const userName = user?.name || 'User';
-  
-const avatarUrl = user?.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=7F5AF0&color=fff&length=2`;
+const avatarUrl = user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=7F5AF0&color=fff&length=2`;
 
   return (
     <aside 

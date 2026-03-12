@@ -37,6 +37,13 @@ const TransaksiInput: React.FC<TransaksiInputProps> = ({ isOpen, onClose }) => {
   const totalIncome = summary?.totalIncome ?? 0;
   const safetySpend = summary?.safetySpend ?? 0;
 
+  // Sync internal date state with global date whenever it changes or modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      setDate(globalDate);
+    }
+  }, [globalDate, isOpen]);
+
   const resetForm = () => {
     setType('expense');
     setAmount('0');
