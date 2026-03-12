@@ -160,7 +160,7 @@ const Settings = ({ darkMode, setDarkMode }: SettingsProps) => {
                   type="text" 
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  className="px-2 py-1 text-sm rounded bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-black dark:text-white outline-hidden focus:ring-2 focus:ring-primary w-full max-w-[200px]"
+                  className="px-2 py-1 text-sm rounded bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-black dark:text-white outline-hidden focus:ring-2 focus:ring-primary w-full max-w-50"
                   autoFocus
                   disabled={isUpdating}
                 />
