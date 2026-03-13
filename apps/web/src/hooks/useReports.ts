@@ -8,6 +8,7 @@ export function useMonthlySummary(params: { month: string; date?: string; startD
     queryKey: [REPORTS_KEY, 'summary', params.month, params.date, params.startDate, params.endDate],
     queryFn: () => reportsService.getMonthlySummary(params.month, params.date, params.startDate, params.endDate),
     enabled: !!params.month,
+    refetchInterval: 5000, // Refetch every 5 seconds for real-time sync
   });
 }
 

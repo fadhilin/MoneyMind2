@@ -13,7 +13,7 @@ const TransactionHistory = () => {
           <h3 className="text-xl font-bold text-black dark:text-white">
             Transaksi Terakhir
           </h3>
-          <p className="text-xs text-slate-500 mt-1 uppercase tracking-wider">
+          <p className="text-xs text-slate-500 mt-1 tracking-wider">
             Aktivitas Terbaru
           </p>
         </div>

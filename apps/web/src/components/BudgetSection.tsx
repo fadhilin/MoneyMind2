@@ -7,7 +7,23 @@ const BudgetSection = () => {
   const month = globalDate.slice(0, 7);
   const { data: budgets = [] } = useBudgets(month);
 
-  const displayBudgets = budgets.slice(0, 3);
+  const displayBudgets = [...budgets].sort((a, b) => {
+    const isMakan = (c: string) =>
+      c.toLowerCase() === "makan & minum" ||
+      c.toLowerCase() === "makan dan minum";
+    const isTransport = (c: string) =>
+      c.toLowerCase() === "transportasi";
+
+    if (isMakan(a.category) && isMakan(b.category)) return 0;
+    if (isMakan(a.category)) return -1;
+    if (isMakan(b.category)) return 1;
+
+    if (isTransport(a.category) && isTransport(b.category)) return 0;
+    if (isTransport(a.category)) return -1;
+    if (isTransport(b.category)) return 1;
+
+    return a.id.localeCompare(b.id);
+  }).slice(0, 3);
 
   const totalBudgetSpent = budgets.reduce((acc, b) => acc + b.spent, 0);
   const totalBudgetLimit = budgets.reduce((acc, b) => acc + b.limit, 0);

@@ -56,17 +56,20 @@ export async function getMonthlySummary(month: string, date?: string, startDate?
   const isCurrentMonth = targetDate.getFullYear() === now.getFullYear() && targetDate.getMonth() === now.getMonth();
   const isFutureMonth = targetDate > now;
 
+  const totalDaysInMonth = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0).getDate();
+  
   let daysRemaining = 1;
   if (isCurrentMonth) {
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    daysRemaining = Math.max(1, lastDay - now.getDate() + 1);
+    daysRemaining = Math.max(1, totalDaysInMonth - now.getDate() + 1);
   } else if (isFutureMonth) {
-    daysRemaining = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0).getDate();
+    daysRemaining = totalDaysInMonth;
   } else {
-    daysRemaining = 1; // Past month, treat as 1 to avoid division issues and show full remaining
+    daysRemaining = 1;
   }
 
-  const safetySpend = Math.max(0, globalBalance / daysRemaining);
+  // Rounding prevents confusion with decimal points in the UI formatting
+  const safetySpend = Math.max(0, Math.floor(globalBalance / daysRemaining));
+  const idealDailySpend = Math.floor(totalIncome / totalDaysInMonth);
 
   return {
     totalIncome,
@@ -75,6 +78,7 @@ export async function getMonthlySummary(month: string, date?: string, startDate?
     realIncome: totalIncome,
     adjustedExpense: totalExpense,
     safetySpend,
+    idealDailySpend,
     dailyExpenses,
     globalBalance,
     savingsTotal

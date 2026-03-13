@@ -77,6 +77,7 @@ export interface ApiMonthlySummary {
   cumulativeBalance?: number;
   globalBalance: number;
   savingsTotal: number;
+  idealDailySpend?: number;
 }
 
 /** Budget distribution item from GET /reports/budget-distribution */

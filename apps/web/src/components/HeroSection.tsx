@@ -1,21 +1,16 @@
-import { useMonthlySummary } from '../hooks/useReports';
-import { useVisibilityStore } from '../stores/useVisibilityStore';
-import AvatarReaction from './AvatarReaction';
+import { useMonthlySummary } from "../hooks/useReports";
+import { useVisibilityStore } from "../stores/useVisibilityStore";
+import AvatarReaction from "./AvatarReaction";
 
 const HeroSection = () => {
   const { isSaldoVisible, toggleVisibility } = useVisibilityStore();
-  const todayDate = new Date().toLocaleDateString('en-CA');
+  const todayDate = new Date().toLocaleDateString("en-CA");
   const todayMonth = todayDate.slice(0, 7);
-  
+
   const { data: summary } = useMonthlySummary({ month: todayMonth });
 
-
-  // Saldo Saat Ini -> Global Cumulative Balance
+  // Saldo Kamu Saat Ini -> Global Cumulative Balance
   const totalBalance = summary?.globalBalance ?? 0;
-  
-  const localIncome = summary?.realIncome ?? 0;
-  const localExpense = summary?.adjustedExpense ?? 0;
-  const ratio = localIncome > 0 ? (localExpense / localIncome) * 100 : 0;
   const safetySpend = summary?.safetySpend ?? 0;
 
   return (
@@ -27,55 +22,62 @@ const HeroSection = () => {
             <AvatarReaction />
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <p className="text-xs md:text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Saldo Kamu Saat Ini</p>
-                <button 
+                <p className="text-xs whitespace-nowrap md:text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                  Saldo Kamu Saat Ini
+                </p>
+                <button
                   onClick={toggleVisibility}
                   className="p-1 hover:bg-slate-200 dark:hover:bg-white/10 rounded-full transition-colors group flex items-center justify-center"
-                  title={isSaldoVisible ? "Sembunyikan Saldo" : "Tampilkan Saldo"}
+                  title={
+                    isSaldoVisible ? "Sembunyikan Saldo" : "Tampilkan Saldo"
+                  }
                 >
                   <span className="material-symbols-outlined text-sm text-slate-400 group-hover:text-primary transition-colors">
-                    {isSaldoVisible ? 'visibility' : 'visibility_off'}
+                    {isSaldoVisible ? "visibility" : "visibility_off"}
                   </span>
                 </button>
               </div>
               <h1 className="text-3xl md:text-5xl font-extrabold text-black dark:text-white tracking-tighter flex items-baseline gap-1 md:gap-2">
-                <span className="text-2xl md:text-4xl">Rp</span>
-                <span>{isSaldoVisible ? totalBalance.toLocaleString('id-ID') : '•••••••'}</span>
+                <span className="text-3xl md:text-5xl">Rp</span>
+                <span>
+                  {isSaldoVisible
+                    ? totalBalance.toLocaleString("id-ID")
+                    : "•••••••"}
+                </span>
               </h1>
             </div>
           </div>
 
           <div className="h-20 w-px bg-slate-200 dark:bg-white/10 hidden lg:block"></div>
 
-          <div className="bg-white/40 dark:bg-white/5 border border-white/50 dark:border-white/10 p-6 rounded-2xl backdrop-blur-md min-w-[240px]">
-            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Estimasi Safety Spend</p>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-black dark:text-white">
-                {isSaldoVisible ? `Rp ${safetySpend.toLocaleString('id-ID')}` : 'Rp •••••••'}
-              </span>
-              <span className="text-xs text-slate-500">/hari</span>
+          <div className="bg-white/40 dark:bg-white/5 border border-white/50 dark:border-white/10 p-6 rounded-2xl backdrop-blur-md min-w-70 lg:min-w-[320px]">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                  Estimasi Safety Spend Harian
+                </p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl md:text-3xl font-bold text-black dark:text-white">
+                    {isSaldoVisible
+                      ? `Rp ${safetySpend.toLocaleString("id-ID")}`
+                      : "Rp •••••••"}
+                  </span>
+                  <span className="text-xs text-slate-500">/hari</span>
+                </div>
+              </div>
+              <div className="bg-primary/10 p-2 rounded-xl">
+                <span className="material-symbols-outlined text-primary text-xl">
+                  shield
+                </span>
+              </div>
             </div>
 
-            {!isSaldoVisible ? (
-              <p className="text-[10px] text-slate-400 mt-2 italic shadow-inner">Nominal disembunyikan</p>
-            ) : totalBalance === 0 ? (
-              <p className="text-[10px] text-slate-500 mt-2 italic">Saldo Anda kosong, tidak ada estimasi saat ini.</p>
-            ) : ratio < 70 ? (
-              <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-2 font-bold flex items-center gap-1">
-                <span className="size-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-                Aman: Anda masih punya ruang.
+            <div className="space-y-3">
+              <p className="text-[10px] leading-relaxed text-slate-600 dark:text-slate-400">
+                Ini adalah jatah belanja harian agar saldo Anda cukup sampai
+                akhir bulan.
               </p>
-            ) : ratio <= 90 ? (
-              <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-2 font-bold flex items-center gap-1">
-                <span className="size-1.5 bg-amber-500 rounded-full animate-pulse"></span>
-                Waspada: Mendekati batas aman.
-              </p>
-            ) : (
-              <p className="text-[10px] text-rose-600 dark:text-rose-400 mt-2 font-bold flex items-center gap-1">
-                <span className="size-1.5 bg-rose-500 rounded-full animate-pulse"></span>
-                Bahaya: Berhenti! Anda boros.
-              </p>
-            )}
+            </div>
           </div>
         </div>
       </div>
