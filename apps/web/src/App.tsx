@@ -21,15 +21,6 @@ import Settings from "./pages/Settings";
 // ─── Type Definitions ────────────────────────────────────────────────────────
 declare const __APP_VERSION__: string;
 
-interface BeforeInstallPromptEvent extends Event {
-  readonly platforms: string[];
-  readonly userChoice: Promise<{
-    outcome: "accepted" | "dismissed";
-    platform: string;
-  }>;
-  prompt(): Promise<void>;
-}
-
 // ─── Layout wrapper ──────────────────────────────────────────────────────────
 const Layout = ({ darkMode }: { darkMode: boolean }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -86,31 +77,6 @@ const ProtectedRoutes = ({ darkMode }: { darkMode: boolean }) => {
 };
 
 function App() {
-  // ─── 1. PWA Install Logic (Strict Types) ───────────────────────────────────
-  const [installPrompt, setInstallPrompt] =
-    useState<BeforeInstallPromptEvent | null>(null);
-
-  useEffect(() => {
-    const handleBeforeInstall = (e: Event) => {
-      e.preventDefault();
-      setInstallPrompt(e as BeforeInstallPromptEvent);
-    };
-
-    window.addEventListener("beforeinstallprompt", handleBeforeInstall);
-
-    return () =>
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
-  }, []);
-
-  const handleInstallClick = async () => {
-    if (!installPrompt) return;
-    await installPrompt.prompt();
-    const { outcome } = await installPrompt.userChoice;
-    if (outcome === "accepted") {
-      setInstallPrompt(null);
-    }
-  };
-
   // ─── 2. Logic Cache Busting (Force Update) ──────────────────────────────────
   useEffect(() => {
     try {
@@ -173,23 +139,6 @@ function App() {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/setup" replace />} />
       </Routes>
-
-      {/* --- Floating Install Button (Z-60) --- */}
-      {installPrompt && (
-        <div className="fixed bottom-24 right-6 z-60 animate-bounce">
-          <button
-            onClick={handleInstallClick}
-            className="flex items-center gap-2 bg-primary text-white px-4 py-3 rounded-2xl font-bold shadow-2xl shadow-primary/40 hover:scale-105 active:scale-95 transition-all border-2 border-white/20"
-          >
-            <span className="material-symbols-outlined text-xl leading-none">
-              download_for_offline
-            </span>
-            <span className="text-[10px] uppercase tracking-wider font-black">
-              Install App
-            </span>
-          </button>
-        </div>
-      )}
     </Router>
   );
 }
