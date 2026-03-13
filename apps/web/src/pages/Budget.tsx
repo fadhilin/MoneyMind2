@@ -242,12 +242,17 @@ const listIcons = [
       ) : (
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
           {[...budgets].sort((a, b) => {
-            const defaults = ['Makan & Minum', 'Transportasi'];
-            const aIdx = defaults.indexOf(a.category);
-            const bIdx = defaults.indexOf(b.category);
-            if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
-            if (aIdx !== -1) return -1;
-            if (bIdx !== -1) return 1;
+            const isMakan = (c: string) => c.toLowerCase() === 'makan & minum' || c.toLowerCase() === 'makan dan minum';
+            const isTransport = (c: string) => c.toLowerCase() === 'transportasi';
+            
+            if (isMakan(a.category) && isMakan(b.category)) return 0;
+            if (isMakan(a.category)) return -1;
+            if (isMakan(b.category)) return 1;
+            
+            if (isTransport(a.category) && isTransport(b.category)) return 0;
+            if (isTransport(a.category)) return -1;
+            if (isTransport(b.category)) return 1;
+            
             return a.id.localeCompare(b.id);
           }).map((b: BudgetType) => {
             const percent = b.limit > 0 ? Math.min(100, Math.round((b.spent / b.limit) * 100)) : 0;
@@ -258,7 +263,7 @@ const listIcons = [
                     <span className="material-symbols-outlined text-xl md:text-2xl">{b.icon}</span>
                   </div>
                   {isEditing ? (
-                    b.category !== 'Makan & Minum' && b.category !== 'Transportasi' ? (
+                    !(b.category.toLowerCase() === 'makan & minum' || b.category.toLowerCase() === 'makan dan minum' || b.category.toLowerCase() === 'transportasi') ? (
                       <button
                         onClick={() => {
                           const newDeletes = new Set(draftDeletes);
@@ -280,7 +285,8 @@ const listIcons = [
                   )}
                 </div>
                 <div className="flex-1">
-                  {isEditing && b.category !== 'Makan & Minum' && b.category !== 'Transportasi' ? (
+                  {isEditing && 
+                    !(b.category.toLowerCase() === 'makan & minum' || b.category.toLowerCase() === 'makan dan minum' || b.category.toLowerCase() === 'transportasi') ? (
                     <input
                       type="text"
                       className="text-base md:text-lg font-bold w-full bg-primary/5 border border-primary/20 rounded px-1 text-primary focus:outline-none"
@@ -349,7 +355,7 @@ const listIcons = [
             );
           })}
 
-          <div className="glass-card rounded-2xl md:rounded-3xl p-5 md:p-6 border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center gap-2 md:gap-3 bg-transparent hover:bg-primary/5 hover:border-primary transition-all group h-full min-h-[220px] md:min-h-[250px]">
+          <div className="glass-card rounded-2xl md:rounded-3xl p-5 md:p-6 border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center gap-2 md:gap-3 bg-transparent hover:bg-primary/5 hover:border-primary transition-all group h-full min-h-55 md:min-h-62.5">
             <h4 className="text-xs md:text-sm font-bold text-slate-500 mb-1">Kategori Baru</h4>
             <div ref={dropdownRef} className="relative w-full mx-auto mb-1">
               <button

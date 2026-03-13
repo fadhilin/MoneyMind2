@@ -29,9 +29,33 @@ export async function getBudgets(
     const prefix = month;
     budgets = budgets.filter((b) => !b.date || b.date.startsWith(prefix));
 
-    // Ensure default categories exist for this month prefix context if they are not there
-    const hasMakan = budgets.some((b) => b.category === "Makan & Minum");
-    const hasTransport = budgets.some((b) => b.category === "Transportasi");
+    // Helper to normalize and check default categories
+    const isDefaultMakan = (cat: string) => 
+      cat.toLowerCase() === "makan & minum" || 
+      cat.toLowerCase() === "makan dan minum";
+    const isDefaultTransport = (cat: string) => 
+      cat.toLowerCase() === "transportasi";
+
+    // Filter out duplicates if they exist (e.g. if somehow two "Makan" categories exists)
+    // We'll keep the first one found and mark others for deletion or just hide them
+    const seenCategories = new Set<string>();
+    budgets = budgets.filter(b => {
+      if (isDefaultMakan(b.category)) {
+        if (seenCategories.has("default_makan")) return false;
+        seenCategories.add("default_makan");
+        return true;
+      }
+      if (isDefaultTransport(b.category)) {
+        if (seenCategories.has("default_transport")) return false;
+        seenCategories.add("default_transport");
+        return true;
+      }
+      return true;
+    });
+
+    // Ensure default categories exist
+    const hasMakan = budgets.some((b) => isDefaultMakan(b.category));
+    const hasTransport = budgets.some((b) => isDefaultTransport(b.category));
 
     if (!hasMakan) {
       const newM = await createBudget({
@@ -117,7 +141,12 @@ export async function deleteBudget(
   const b = await db.budgets.get(id);
   if (!b) throw new Error("Budget not found");
 
-  if (b.category === "Makan & Minum" || b.category === "Transportasi") {
+  const isDefault = (cat: string) => {
+    const c = cat.toLowerCase();
+    return c === "makan & minum" || c === "makan dan minum" || c === "transportasi";
+  };
+
+  if (isDefault(b.category)) {
     throw new Error("Kategori default tidak bisa dihapus");
   }
 
