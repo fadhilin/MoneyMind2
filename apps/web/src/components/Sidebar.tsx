@@ -80,14 +80,6 @@ const Sidebar = ({ darkMode, isOpen, onClose, onOpenModal }: SidebarProps) => {
       : `${base} text-slate-500 hover:bg-slate-100 hover:text-primary hover:shadow-sm`;
   };
 
-  const handleLogout = async () => {
-    localStorage.removeItem("globalDate");
-    localStorage.removeItem("has_profile"); // Clear fast-path flag
-    // await signOut(); // Hapus atau jadikan komentar
-    localStorage.clear();
-    window.location.href = "/setup";
-  };
-
   const userName = user?.name || "User";
   const avatarUrl =
     user?.avatar ||
@@ -194,17 +186,7 @@ const Sidebar = ({ darkMode, isOpen, onClose, onOpenModal }: SidebarProps) => {
               <p className="text-xs font-semibold text-black dark:text-white truncate transition-colors">
                 {userName}
               </p>
-              <p className="text-[10px] text-black/50 dark:text-white/50 truncate">
-                Pro Member
-              </p>
             </div>
-            <button
-              onClick={handleLogout}
-              className="text-slate-400 hover:text-red-500 transition-colors"
-              title="Keluar"
-            >
-              <span className="material-symbols-outlined text-lg">logout</span>
-            </button>
           </div>
         </div>
       </div>
