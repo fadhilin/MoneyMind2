@@ -1,0 +1,5 @@
+package com.fadil.moneymind;
+
+import com.getcapacitor.BridgeActivity;
+
+public class MainActivity extends BridgeActivity {}
