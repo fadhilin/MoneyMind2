@@ -3,9 +3,7 @@ import type { TransactionType } from "../types/finance";
 import { useCreateTransaction } from "../hooks/useTransactions";
 import { useBudgets } from "../hooks/useBudgets";
 import { useMonthlySummary } from "../hooks/useReports";
-import { useQueryClient } from "@tanstack/react-query";
 import { useGlobalDate } from "../hooks/useGlobalDate";
-import { db } from "../lib/db";
 
 interface TransaksiInputProps {
   isOpen: boolean;
@@ -21,9 +19,6 @@ interface TransactionCreateInput {
   icon: string;
 }
 
-interface LocalTransactionInput extends TransactionCreateInput {
-  synced: number;
-}
 
 const incomeCategories = [
   { name: "Gaji", icon: "payments", color: "emerald-500" },
@@ -35,7 +30,6 @@ const incomeCategories = [
 ];
 
 const TransaksiInput: React.FC<TransaksiInputProps> = ({ isOpen, onClose }) => {
-  const queryClient = useQueryClient();
   const [globalDate, setGlobalDate] = useGlobalDate();
   const [date, setDate] = useState<string>(globalDate);
   const [type, setType] = useState<TransactionType>("expense");
@@ -104,8 +98,6 @@ const TransaksiInput: React.FC<TransaksiInputProps> = ({ isOpen, onClose }) => {
     }
 
     const selectedCat = displayCategories.find((c) => c.name === category);
-
-    // Data untuk server
     const serverData: TransactionCreateInput = {
       amount: numAmount,
       type,
@@ -115,43 +107,16 @@ const TransaksiInput: React.FC<TransaksiInputProps> = ({ isOpen, onClose }) => {
       icon: selectedCat?.icon || "payments",
     };
 
-    // Data untuk lokal (Dexie)
-    const localData: LocalTransactionInput = {
-      ...serverData,
-      synced: 0,
-    };
-
-    try {
-      // Simpan ke Dexie (Lokal)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const localId = await db.transactions.add(localData as unknown as any);
-      // Catatan: Jika Dexie masih protes, gunakan 'as unknown as LocalTransactionInput'
-
-      console.log("✅ Tersimpan di lokal ID:", localId);
-
-      // Kirim ke server
-      // Kita gunakan type casting 'as any' hanya pada mutasi jika hook-nya mewajibkan 'id'
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      createTransaction.mutate(serverData as any, {
-        onSuccess: async () => {
-          // Update status synced di Dexie
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await db.transactions.update(localId, { synced: 1 } as any);
-
-          setGlobalDate(date);
-          await queryClient.invalidateQueries();
-          handleClose();
-        },
-        onError: (err: Error) => {
-          console.error("❌ Gagal ke server, tetap di HP:", err);
-          setGlobalDate(date);
-          queryClient.invalidateQueries();
-          handleClose();
-        },
-      });
-    } catch (err) {
-      console.error("Gagal simpan lokal:", err);
-    }
+    createTransaction.mutate(serverData, {
+      onSuccess: () => {
+        setGlobalDate(date);
+        handleClose();
+      },
+      onError: (err: Error) => {
+        console.error("❌ Gagal simpan transaksi:", err);
+        alert("Gagal simpan transaksi: " + err.message);
+      },
+    });
   };
 
   return (

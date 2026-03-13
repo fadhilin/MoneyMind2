@@ -32,6 +32,9 @@ export function useCreateTransaction() {
       qc.invalidateQueries({ queryKey: ['reports'] });
       qc.invalidateQueries({ queryKey: ['budgets'] });
       qc.invalidateQueries({ queryKey: ['savings'] });
+      
+      // Proactive sync
+      import('../lib/sync').then(({ syncData }) => syncData()).catch(console.error);
     },
   });
 }
@@ -44,6 +47,9 @@ export function useDeleteTransaction() {
       qc.invalidateQueries({ queryKey: [TRANSACTIONS_KEY] });
       qc.invalidateQueries({ queryKey: ['reports'] });
       qc.invalidateQueries({ queryKey: ['budgets'] });
+
+      // Proactive sync
+      import('../lib/sync').then(({ syncData }) => syncData()).catch(console.error);
     },
   });
 }
@@ -57,6 +63,9 @@ export function useDeleteTransactionsByMonth() {
       qc.invalidateQueries({ queryKey: ['reports'] });
       qc.invalidateQueries({ queryKey: ['budgets'] });
       qc.invalidateQueries({ queryKey: ['savings'] });
+
+      // Proactive sync
+      import('../lib/sync').then(({ syncData }) => syncData()).catch(console.error);
     },
   });
 }
@@ -70,6 +79,9 @@ export function useDeleteTransactionsByDate() {
       qc.invalidateQueries({ queryKey: ['reports'] });
       qc.invalidateQueries({ queryKey: ['budgets'] });
       qc.invalidateQueries({ queryKey: ['savings'] });
+
+      // Proactive sync
+      import('../lib/sync').then(({ syncData }) => syncData()).catch(console.error);
     },
   });
 }

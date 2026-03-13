@@ -60,6 +60,9 @@ export function useDepositBudget() {
       qc.invalidateQueries({ queryKey: [BUDGETS_KEY] });
       qc.invalidateQueries({ queryKey: ['transactions'] });
       qc.invalidateQueries({ queryKey: ['reports'] });
+
+      // Proactive sync
+      import('../lib/sync').then(({ syncData }) => syncData()).catch(console.error);
     },
   });
 }
@@ -74,6 +77,9 @@ export function useWithdrawBudget() {
       qc.invalidateQueries({ queryKey: ['transactions'] });
       qc.invalidateQueries({ queryKey: ['reports'] });
       qc.invalidateQueries({ queryKey: ['savings'] });
+
+      // Proactive sync
+      import('../lib/sync').then(({ syncData }) => syncData()).catch(console.error);
     },
   });
 }
