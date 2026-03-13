@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.vercel.moneymind2_coral.twa",
+      "sha256_cert_fingerprints": [
+        "DF:6E:8E:D8:21:12:85:18:6F:FA:F8:62:7A:ED:9E:6A:47:28:AF:3E:A0:BD:24:98:A4:E7:63:F9:DF:39:22:E5"
+      ]
+    }
+  }
+]
