@@ -56,6 +56,7 @@ export default defineConfig({
       },
     }),
   ],
+  assetsInclude: ["**/*.json"],
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
