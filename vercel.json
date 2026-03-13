@@ -1,12 +1,12 @@
 {
   "rewrites": [
     {
-      "source": "/.well-known/(.*)",
-      "destination": "/.well-known/$1"
+      "source": "/.well-known/:path*",
+      "destination": "/apps/web/public/.well-known/:path*"
     },
     {
       "source": "/(.*)",
-      "destination": "/"
+      "destination": "/apps/web"
     }
   ]
 }
