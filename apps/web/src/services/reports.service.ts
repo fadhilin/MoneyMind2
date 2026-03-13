@@ -50,7 +50,14 @@ export async function getMonthlySummary(month: string, date?: string, startDate?
     .map(([key, amount]) => ({ date: key, amount }))
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  const safetySpend = globalBalance;
+  // Calculate Safety Spend: globalBalance / days remaining in month
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+  const today = now.getDate();
+  const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const daysRemaining = Math.max(1, lastDayOfMonth - today + 1); // include today
+  const safetySpend = Math.max(0, globalBalance / daysRemaining);
 
   return {
     totalIncome,
