@@ -40,7 +40,7 @@ const HeroSection = () => {
               </div>
               <h1 className="text-3xl md:text-5xl font-extrabold text-black dark:text-white tracking-tighter flex items-baseline gap-1 md:gap-2">
                 <span className="text-2xl md:text-4xl">Rp</span>
-                <span className="truncate">{isSaldoVisible ? totalBalance.toLocaleString('id-ID') : '•••••••'}</span>
+                <span>{isSaldoVisible ? totalBalance.toLocaleString('id-ID') : '•••••••'}</span>
               </h1>
             </div>
           </div>
@@ -53,7 +53,7 @@ const HeroSection = () => {
               <span className="text-2xl font-bold text-black dark:text-white">
                 {isSaldoVisible ? `Rp ${safetySpend.toLocaleString('id-ID')}` : 'Rp •••••••'}
               </span>
-              <span className="text-xs text-slate-500">/bulan</span>
+              <span className="text-xs text-slate-500">/hari</span>
             </div>
 
             {!isSaldoVisible ? (

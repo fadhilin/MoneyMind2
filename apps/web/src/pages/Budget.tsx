@@ -79,7 +79,7 @@ const listIcons = [
 
   const realIncome = dailySummary?.realIncome ?? 0; // Pure daily realIncome
   const adjustedExpense = dailySummary?.adjustedExpense ?? 0; // Pure daily expenses
-  const safetySpend = dailySummary?.globalBalance ?? 0;
+  const safetySpend = dailySummary?.safetySpend ?? 0;
   
   const monthlyIncome = monthSummary?.realIncome ?? 0;
   const remainingBudget = dailySummary?.globalBalance ?? 0; // Sync with wallet/global balance

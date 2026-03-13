@@ -50,13 +50,22 @@ export async function getMonthlySummary(month: string, date?: string, startDate?
     .map(([key, amount]) => ({ date: key, amount }))
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  // Calculate Safety Spend: globalBalance / days remaining in month
+  // Calculate Safety Spend: globalBalance / days remaining in target month
+  const targetDate = month ? new Date(`${month}-01`) : new Date();
   const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth();
-  const today = now.getDate();
-  const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-  const daysRemaining = Math.max(1, lastDayOfMonth - today + 1); // include today
+  const isCurrentMonth = targetDate.getFullYear() === now.getFullYear() && targetDate.getMonth() === now.getMonth();
+  const isFutureMonth = targetDate > now;
+
+  let daysRemaining = 1;
+  if (isCurrentMonth) {
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    daysRemaining = Math.max(1, lastDay - now.getDate() + 1);
+  } else if (isFutureMonth) {
+    daysRemaining = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0).getDate();
+  } else {
+    daysRemaining = 1; // Past month, treat as 1 to avoid division issues and show full remaining
+  }
+
   const safetySpend = Math.max(0, globalBalance / daysRemaining);
 
   return {
