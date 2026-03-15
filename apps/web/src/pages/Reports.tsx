@@ -7,6 +7,10 @@ import {
 import { useGlobalDate } from "../hooks/useGlobalDate";
 import { useBudgets } from "../hooks/useBudgets";
 import ReportSection from "../components/ReportSection";
+import * as XLSX from "xlsx";
+import { Filesystem, Directory } from "@capacitor/filesystem";
+import { Share } from "@capacitor/share";
+import { Capacitor } from "@capacitor/core";
 
 type ReportPeriod = "daily" | "weekly" | "monthly";
 
@@ -115,100 +119,88 @@ const Reports: React.FC = () => {
       ? Math.round(((totalIncome - totalExpense) / totalIncome) * 100)
       : 0;
 
-  const exportToCSV = () => {
+  const exportToExcel = async () => {
     const todayDate = new Date().toISOString().split("T")[0];
-    const csvRows: string[] = [];
+    
+    // 1. Prepare data for Excel sheets
+    
+    // Sheet 1: Summary
+    const summaryData = [
+      ["RINGKASAN LAPORAN KEUANGAN"],
+      ["Periode", periodParams.label],
+      ["Tanggal Unduh", new Date().toLocaleDateString("id-ID")],
+      [],
+      ["METRIK UTAMA"],
+      ["Total Pemasukan", totalIncome],
+      ["Total Pengeluaran", totalExpense],
+      ["Selisih (Net)", totalBalance],
+      ["Efisiensi Pengeluaran", efficiency + "%"],
+      ["Sisa Saldo Dompet", summary?.globalBalance || 0],
+      [],
+    ];
 
-    // Helper to escape CSV values
-    const esc = (v: unknown) => {
-      const s = String(v ?? "");
-      if (s.includes(";") || s.includes('"') || s.includes("\n")) {
-        return `"${s.replace(/"/g, '""')}"`;
+    // Sheet 2: Budgets
+    const budgetHeaders = [["DISTRIBUSI ANGGARAN"], ["Kategori", "Limit", "Terpakai", "Sisa", "Persentase"]];
+    const budgetRows = budgetDist.length > 0 ? budgetDist.map((b: any) => [
+      b.category,
+      b.limit,
+      b.spent,
+      b.limit - b.spent,
+      b.percent.toFixed(1) + "%"
+    ]) : [["Tidak ada data anggaran"]];
+
+    // Sheet 3: Transactions Breakdown
+    const breakdownHeaders = [["BREAKDOWN TRANSAKSI"], ["Kategori", "Tipe", "Total (Rp)", "Frekuensi"]];
+    const breakdownRows = breakdown.length > 0 ? breakdown.map((item: any) => [
+      item.category,
+      item.type === "income" ? "Pemasukan" : "Pengeluaran",
+      item.total,
+      item.count + "x"
+    ]) : [["Tidak ada detail transaksi"]];
+
+    // 2. Create Workbook and Sheets
+    const wb = XLSX.utils.book_new();
+    
+    // Combine all into one main sheet for simplicity or use multiple
+    const mainSheetData = [
+      ...summaryData,
+      ...budgetHeaders,
+      ...budgetRows,
+      [],
+      ...breakdownHeaders,
+      ...breakdownRows
+    ];
+    
+    const ws = XLSX.utils.aoa_to_sheet(mainSheetData);
+    XLSX.utils.book_append_sheet(wb, ws, "Laporan Keuangan");
+
+    const fileName = `Laporan_Keuangan_${todayDate}.xlsx`;
+
+    // 3. Handle Download based on Platform
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const base64Data = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+        
+        const savedFile = await Filesystem.writeFile({
+          path: fileName,
+          data: base64Data,
+          directory: Directory.Cache, // Use Cache for temporary sharing
+        });
+
+        await Share.share({
+          title: 'Unduh Laporan Keuangan',
+          text: 'Berikut adalah laporan keuangan Anda.',
+          url: savedFile.uri,
+          dialogTitle: 'Simpan atau Bagikan Laporan',
+        });
+      } catch (error) {
+        console.error("Error exporting to Excel on mobile:", error);
+        alert("Gagal mengunduh laporan ke perangkat.");
       }
-      return s;
-    };
-
-    // 1. Header & Identitas
-    csvRows.push("User");
-    csvRows.push(`${esc("Periode")};${esc(periodParams.label)}`);
-    csvRows.push(
-      `${esc("Tanggal Unduh")};${esc(new Date().toLocaleDateString("id-ID"))}`,
-    );
-    csvRows.push("");
-
-    // 2. Ringkasan Keuangan (High Level)
-    csvRows.push(esc("RINGKASAN UTAMA"));
-    csvRows.push(`${esc("Pemasukan")};${esc(totalIncome)}`);
-    csvRows.push(`${esc("Pengeluaran")};${esc(totalExpense)}`);
-    csvRows.push(`${esc("Selisih (Net)")};${esc(totalBalance)}`);
-    csvRows.push(`${esc("Efisiensi")};${esc(efficiency + "%")}`);
-    csvRows.push(
-      `${esc("Saldo Saat Ini (Dompet)")};${esc(summary?.globalBalance || 0)}`,
-    );
-    csvRows.push("");
-
-    // 3. Distribusi Anggaran
-    csvRows.push(esc("DISTRIBUSI ANGGARAN (PENGELUARAN PER KATEGORI)"));
-    if (budgetDist.length > 0) {
-      csvRows.push(
-        `${esc("Kategori")};${esc("Limit Bulanan")};${esc("Terpakai (Periode)")};${esc("Sisa Limit")};${esc("Persentase")}`,
-      );
-      budgetDist.forEach(
-        (b: {
-          category: string;
-          limit: number;
-          spent: number;
-          percent: number;
-        }) => {
-          const remaining = b.limit - b.spent;
-          csvRows.push(
-            `${esc(b.category)};${esc(b.limit)};${esc(b.spent)};${esc(remaining)};${esc(b.percent.toFixed(1) + "%")}`,
-          );
-        },
-      );
     } else {
-      csvRows.push(esc("Tidak ada data anggaran untuk periode ini."));
+      // Browser Download
+      XLSX.writeFile(wb, fileName);
     }
-    csvRows.push("");
-
-    // 4. Breakdown Transaksi (Detail Tipe)
-    csvRows.push(esc("BREAKDOWN DETAIL TRANSAKSI"));
-    if (breakdown.length > 0) {
-      csvRows.push(
-        `${esc("Kategori")};${esc("Tipe")};${esc("Total (Rp)")};${esc("Frekuensi")}`,
-      );
-      breakdown.forEach(
-        (item: {
-          category: string;
-          type: string;
-          total: number;
-          count: number;
-        }) => {
-          const typeIndo = item.type === "income" ? "Pemasukan" : "Pengeluaran";
-          csvRows.push(
-            `${esc(item.category)};${esc(typeIndo)};${esc(item.total)};${esc(item.count + "x")}`,
-          );
-        },
-      );
-    } else {
-      csvRows.push(esc("Tidak ada detail transaksi untuk periode ini."));
-    }
-
-    // Wrap in Blob for better compatibility with different encodings
-    const csvString = csvRows.join("\r\n");
-    const blob = new Blob(["\uFEFF" + csvString], {
-      type: "text/csv;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-    link.href = url;
-    // Perbaikan syntax error di baris ini
-    link.setAttribute("download", `Laporan_User_${todayDate}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   };
 
   const handlePrev = () => {
@@ -281,13 +273,13 @@ const Reports: React.FC = () => {
             </div>
 
             <button
-              onClick={exportToCSV}
+              onClick={exportToExcel}
               className="w-full sm:w-auto bg-primary text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-primary/30 hover:brightness-110 transition-all flex items-center justify-center gap-2"
             >
               <span className="material-symbols-outlined text-sm">
                 download
               </span>
-              Unduh CSV
+              Unduh Spreadsheet
             </button>
           </div>
         </div>

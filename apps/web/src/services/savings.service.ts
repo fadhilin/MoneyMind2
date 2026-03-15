@@ -76,7 +76,10 @@ export async function depositSaving(id: string, amount: number, date?: string): 
     type: 'expense',
     amount: amount,
     category: 'Tabungan',
-    date: date || new Date().toISOString(),
+    date:
+      date && date.length === 10
+        ? `${date}T${new Date().toISOString().split("T")[1]}`
+        : date || new Date().toISOString(),
     note: `Setor ke tabungan: ${s.name}`,
     icon: s.icon
   });
@@ -95,7 +98,10 @@ export async function withdrawSaving(id: string, amount: number, date?: string):
     type: 'expense',
     amount: -amount,
     category: 'Pencairan Tabungan',
-    date: date || new Date().toISOString(),
+    date:
+      date && date.length === 10
+        ? `${date}T${new Date().toISOString().split("T")[1]}`
+        : date || new Date().toISOString(),
     note: `Tarik dari tabungan: ${s.name}`,
     icon: s.icon
   });
@@ -105,23 +111,24 @@ export async function withdrawSaving(id: string, amount: number, date?: string):
   await db.savings.put(s);
 }
 
-export async function autoAllocateSaving(id: string, month: string, date?: string): Promise<void> {
+export async function autoAllocateSaving(id: string, _month: string, date?: string, amount?: number): Promise<void> {
   const s = await db.savings.get(id);
   if (!s) return;
 
-  // 1. Calculate the total balance from that month
-  const start = new Date(`${month}-01T00:00:00.000Z`).toISOString();
-  const end = new Date(new Date(start).getFullYear(), new Date(start).getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
-  
-  const txs = await db.transactions.filter(tx => tx.date >= start && tx.date <= end).toArray();
-  const totalIncome = txs.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-  const totalExpense = txs.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-  const totalBalance = totalIncome - totalExpense;
+  let amountToAllocate = amount;
 
-  if (totalBalance <= 0) return; // Cannot allocate
+  if (amountToAllocate === undefined) {
+    // 1. Calculate the global balance (all-time)
+    const allTxs = await db.transactions.toArray();
+    const globalIncome = allTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+    const globalExpense = allTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+    const globalBalance = globalIncome - globalExpense;
 
-  // Standard allocation is 20%
-  const amountToAllocate = Math.floor(totalBalance * 0.20);
+    if (globalBalance <= 0) return; // Cannot allocate
+    
+    // Exactly 10%
+    amountToAllocate = Math.floor(globalBalance * 0.10);
+  }
   
   if (amountToAllocate > 0) {
     await depositSaving(id, amountToAllocate, date);

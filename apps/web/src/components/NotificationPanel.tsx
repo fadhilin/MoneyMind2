@@ -115,7 +115,7 @@ const NotificationPanel = ({ isOpen, onClose }: NotificationPanelProps) => {
   return (
     <div
       ref={panelRef}
-      className="absolute right-0 sm:right-0 top-full mt-3 w-[calc(100vw-2rem)] sm:w-[380px] z-50 glass-card rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl shadow-black/20 overflow-hidden animate-in"
+      className="absolute right-0 sm:right-0 top-full mt-3 w-[calc(100vw-2rem)] sm:w-[380px] z-50 bg-white dark:bg-[#110e1c] rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl shadow-black/40 overflow-hidden animate-in"
       style={{ animation: 'slideIn 0.2s ease-out' }}
     >
       {/* Header */}

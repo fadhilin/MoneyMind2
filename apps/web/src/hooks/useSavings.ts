@@ -82,8 +82,8 @@ export function useWithdrawSaving() {
 export function useAutoAllocateSaving() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, month, date }: { id: string; month: string; date?: string }) =>
-      savingsService.autoAllocateSaving(id, month, date),
+    mutationFn: ({ id, month, date, amount }: { id: string; month: string; date?: string; amount?: number }) =>
+      savingsService.autoAllocateSaving(id, month, date, amount),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [SAVINGS_KEY] });
       qc.invalidateQueries({ queryKey: ['transactions'] });

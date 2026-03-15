@@ -11,6 +11,7 @@ import {
 } from '../hooks/useSavings';
 import { useMonthlySummary } from '../hooks/useReports';
 import { useGlobalDate } from '../hooks/useGlobalDate';
+import { formatCurrencyInput, parseCurrencyInput } from '../utils/formatters';
 
 const Savings: React.FC = () => {
   const [globalDate] = useGlobalDate();
@@ -18,12 +19,11 @@ const Savings: React.FC = () => {
 
   // Users explicitly want Savings interactions to always drop into "Today", 
   // bypassing whatever historical date they might be viewing.
-  const d = new Date();
-  const todayDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  // Ensure consistency by using UTC-based date for "Today"
+  const todayDate = new Date().toISOString().split('T')[0];
 
   const { data: savings = [], isLoading } = useSavings();
   const { data: monthSummary } = useMonthlySummary({ month: selectedMonth });
-  const { data: dailySummary } = useMonthlySummary({ month: selectedMonth, date: globalDate });
 
   const createSaving = useCreateSaving();
   const updateSaving = useUpdateSaving();
@@ -32,7 +32,6 @@ const Savings: React.FC = () => {
   const withdrawSaving = useWithdrawSaving();
   const autoAllocate = useAutoAllocateSaving();
 
-  const realIncome = dailySummary?.realIncome ?? 0;
   const safetySpend = monthSummary?.safetySpend ?? 0;
   
   const remainingBudget = monthSummary?.globalBalance ?? 0;
@@ -96,10 +95,10 @@ const Savings: React.FC = () => {
   };
 
   const handleAutoAllocate = (savingId: string) => {
-    const amountToAllocate = Math.round(realIncome * 0.1);
-    if (amountToAllocate <= 0) return alert('Target tabungan belum bisa ditentukan karena pemasukan masih Rp 0');
+    const amountToAllocate = Math.round(remainingBudget * 0.1);
+    if (amountToAllocate <= 0) return alert('Target tabungan belum bisa ditentukan karena sisa saldo Rp 0');
     if (amountToAllocate > remainingBudget) return alert(`Saldo tidak mencukupi (Dibutuhkan: Rp ${amountToAllocate.toLocaleString('id-ID')}, Tersedia: Rp ${remainingBudget.toLocaleString('id-ID')})`);
-    autoAllocate.mutate({ id: savingId, month: selectedMonth, date: todayDate });
+    autoAllocate.mutate({ id: savingId, month: selectedMonth, date: todayDate, amount: amountToAllocate });
   };
 
   return (
@@ -196,7 +195,7 @@ const Savings: React.FC = () => {
                 Saran Nabung
             </h4>
             <p className="text-slate-600 dark:text-slate-400 text-[13px] md:text-sm leading-relaxed mb-6">
-              Dengan pemasukan <b className="text-black dark:text-white">Rp {realIncome.toLocaleString('id-ID')}</b>, alokasikan 10% (Rp {(realIncome * 0.1).toLocaleString('id-ID')}) untuk target Anda:
+              Berdasarkan sisa saldo <b className="text-black dark:text-white">Rp {remainingBudget.toLocaleString('id-ID')}</b>, alokasikan 10% (Rp {Math.round(remainingBudget * 0.1).toLocaleString('id-ID')}) untuk target Anda:
             </p>
             {savings.length > 0 ? (
               <div className="space-y-2 md:space-y-3">
@@ -231,7 +230,17 @@ const Savings: React.FC = () => {
               </div>
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase px-1">Nominal Target (Rp)</label>
-                <input type="number" value={formData.target} onChange={e => setFormData({ ...formData, target: e.target.value })} className="w-full mt-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-black dark:text-white focus:border-primary outline-none" placeholder="0" />
+                <input 
+                  type="text" 
+                  inputMode="numeric"
+                  value={formData.target ? formatCurrencyInput(formData.target) : ""} 
+                  onChange={e => setFormData({ ...formData, target: parseCurrencyInput(e.target.value) })} 
+                  onKeyDown={e => {
+                    if (e.key === "Enter") handleSave();
+                  }}
+                  className="w-full mt-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-black dark:text-white focus:border-primary outline-none" 
+                  placeholder="0" 
+                />
               </div>
               <div className="flex gap-4 pt-4">
                 <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3 font-bold text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5 rounded-xl transition-all">Batal</button>
@@ -253,7 +262,18 @@ const Savings: React.FC = () => {
             <div className="space-y-4">
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase px-1">Nominal (Rp)</label>
-                <input type="number" autoFocus value={txAmount} onChange={e => setTxAmount(e.target.value)} className="w-full mt-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-black dark:text-white focus:border-primary outline-none text-xl font-bold" placeholder="0" />
+                <input 
+                  type="text" 
+                  inputMode="numeric"
+                  autoFocus 
+                  value={txAmount ? formatCurrencyInput(txAmount) : ""} 
+                  onChange={e => setTxAmount(parseCurrencyInput(e.target.value))} 
+                  onKeyDown={e => {
+                    if (e.key === "Enter") handleTxSubmit();
+                  }}
+                  className="w-full mt-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-black dark:text-white focus:border-primary outline-none text-xl font-bold" 
+                  placeholder="0" 
+                />
               </div>
               <div className="flex gap-4 pt-4">
                 <button onClick={() => setIsTxModalOpen(false)} className="flex-1 py-3 font-bold text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5 rounded-xl transition-all">Batal</button>

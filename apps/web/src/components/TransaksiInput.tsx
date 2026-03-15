@@ -4,6 +4,7 @@ import { useCreateTransaction } from "../hooks/useTransactions";
 import { useBudgets } from "../hooks/useBudgets";
 import { useMonthlySummary } from "../hooks/useReports";
 import { useGlobalDate } from "../hooks/useGlobalDate";
+import { formatCurrencyInput, parseCurrencyInput } from "../utils/formatters";
 
 interface TransaksiInputProps {
   isOpen: boolean;
@@ -77,8 +78,7 @@ const TransaksiInput: React.FC<TransaksiInputProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   const handleAmountChange = (val: string) => {
-    const numeric = val.replace(/[^0-9]/g, "");
-    setAmount(numeric || "0");
+    setAmount(parseCurrencyInput(val) || "0");
   };
 
   const handleSave = async () => {
@@ -128,7 +128,7 @@ const TransaksiInput: React.FC<TransaksiInputProps> = ({ isOpen, onClose }) => {
         className="relative w-full sm:max-w-lg glass-card rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[95vh] bg-white dark:bg-[#151121]/95 border border-slate-200 dark:border-primary/20"
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-primary/10">
+        <header className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-primary/10 select-none">
           <div className="flex items-center gap-3">
             <h2 className="text-xl font-bold text-black dark:text-white">
               Catat Transaksi
@@ -143,7 +143,7 @@ const TransaksiInput: React.FC<TransaksiInputProps> = ({ isOpen, onClose }) => {
         </header>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar">
-          <div className="px-6 py-6">
+          <div className="px-6 py-6 select-none">
             <div className="flex gap-2">
               <label className="flex-1 cursor-pointer">
                 <input
@@ -178,7 +178,7 @@ const TransaksiInput: React.FC<TransaksiInputProps> = ({ isOpen, onClose }) => {
             </div>
           </div>
 
-          <div className="px-6 py-10 text-center bg-black/5 dark:bg-white/5 border border-slate-200 dark:border-white/5 mx-6 rounded-3xl mb-8">
+          <div className="px-6 py-10 text-center bg-black/5 dark:bg-white/5 border border-slate-200 dark:border-white/5 mx-6 rounded-3xl mb-8 select-none">
             <p className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-widest mb-2">
               Nominal Transaksi
             </p>
@@ -188,10 +188,14 @@ const TransaksiInput: React.FC<TransaksiInputProps> = ({ isOpen, onClose }) => {
               <span className="text-primary text-2xl font-bold">Rp</span>
               <input
                 type="text"
+                inputMode="numeric"
                 value={
-                  amount === "0" ? "" : Number(amount).toLocaleString("id-ID")
+                  amount === "0" ? "" : formatCurrencyInput(amount)
                 }
                 onChange={(e) => handleAmountChange(e.target.value)}
+                onKeyDown={(e) => {
+                   if (e.key === "Enter") handleSave();
+                }}
                 autoFocus
                 className={`bg-transparent border-none focus:ring-0 w-full text-center outline-hidden placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-colors ${amount !== "0" ? "text-white" : "text-slate-400 dark:text-slate-500"}`}
                 placeholder="0"
@@ -199,7 +203,7 @@ const TransaksiInput: React.FC<TransaksiInputProps> = ({ isOpen, onClose }) => {
             </div>
           </div>
 
-          <div className="px-6 pb-8">
+          <div className="px-6 pb-8 select-none">
             <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-6 px-1 uppercase tracking-wider">
               Kategori
             </h3>

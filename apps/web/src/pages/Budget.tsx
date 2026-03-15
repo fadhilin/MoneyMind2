@@ -11,11 +11,11 @@ import {
 import { useMonthlySummary } from "../hooks/useReports";
 import { useDeleteTransactionsByDate } from "../hooks/useTransactions";
 import { useGlobalDate } from "../hooks/useGlobalDate";
+import { formatCurrencyInput, parseCurrencyInput } from "../utils/formatters";
 
 const Budget: React.FC = () => {
   const [globalDate] = useGlobalDate();
   const selectedMonth = globalDate.slice(0, 7);
-
   const { data: budgets = [], isLoading } = useBudgets(selectedMonth);
   const { data: monthSummary } = useMonthlySummary({ month: selectedMonth });
   const { data: dailySummary } = useMonthlySummary({
@@ -90,7 +90,6 @@ const Budget: React.FC = () => {
   const safetySpend = dailySummary?.safetySpend ?? 0;
 
   const monthlyIncome = monthSummary?.realIncome ?? 0;
-  const remainingBudget = dailySummary?.globalBalance ?? 0; // Sync with wallet/global balance
 
   const handleAddCategory = () => {
     if (!newCatName || !newCatLimit) return alert("Lengkapi data");
@@ -119,9 +118,10 @@ const Budget: React.FC = () => {
     if (!selectedBudget || !txAmount) return;
     const amount = parseInt(txAmount);
     if (txType === "deposit") {
-      if (amount > remainingBudget) {
+      const currentBalance = monthSummary?.globalBalance ?? 0;
+      if (amount > currentBalance) {
         return alert(
-          `Oops! Saldo Anda tidak cukup. Sisa saldo: Rp ${remainingBudget.toLocaleString("id-ID")}`,
+          `Oops! Saldo Anda tidak cukup. Sisa saldo: Rp ${currentBalance.toLocaleString("id-ID")}`,
         );
       }
       depositBudget.mutate({ id: selectedBudget.id, amount, date: txDate });
@@ -155,7 +155,7 @@ const Budget: React.FC = () => {
           <div className="flex w-full sm:w-auto gap-4 bg-slate-50 dark:bg-white/5 py-2 px-4 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm justify-between sm:justify-end">
             <div className="text-right">
               <p className="text-[9px] md:text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">
-                Total Saldo
+                Pemasukan Bulan Ini
               </p>
               <p className="text-xs md:text-sm font-black text-black dark:text-white">
                 Rp {monthlyIncome.toLocaleString("id-ID")}
@@ -167,9 +167,9 @@ const Budget: React.FC = () => {
                 Sisa Saldo
               </p>
               <p
-                className={`text-xs md:text-sm font-black ${remainingBudget < 0 ? "text-rose-500" : "text-black dark:text-white"}`}
+                className={`text-xs md:text-sm font-black ${(monthSummary?.globalBalance ?? 0) < 0 ? "text-rose-500" : "text-black dark:text-white"}`}
               >
-                Rp {remainingBudget.toLocaleString("id-ID")}
+                Rp {(monthSummary?.globalBalance ?? 0).toLocaleString("id-ID")}
               </p>
             </div>
           </div>
@@ -218,7 +218,7 @@ const Budget: React.FC = () => {
 
       <section className="mb-8 md:mb-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <div
-          className={`md:col-span-2 lg:col-span-3 glass rounded-3xl md:rounded-4xl p-6 md:p-8 grid grid-cols-2 items-center border-l-4 md:border-l-8 ${remainingBudget < 0 ? "border-l-rose-500 bg-rose-500/5" : "border-l-primary bg-primary/5"} shadow-xl md:shadow-2xl shadow-primary/5 relative group/header`}
+          className={`md:col-span-2 lg:col-span-3 glass rounded-3xl md:rounded-4xl p-6 md:p-8 grid grid-cols-2 items-center border-l-4 md:border-l-8 ${(monthSummary?.globalBalance ?? 0) < 0 ? "border-l-rose-500 bg-rose-500/5" : "border-l-primary bg-primary/5"} shadow-xl md:shadow-2xl shadow-primary/5 relative group/header`}
         >
           <div className="flex flex-col items-center justify-start text-center relative px-2 md:px-6 lg:px-10 h-full">
             <div className="h-4 flex items-center justify-center mb-4 md:mb-6 relative w-full">
@@ -403,11 +403,14 @@ const Budget: React.FC = () => {
                         <input
                           type="number"
                           className="w-20 md:w-24 bg-primary/5 border border-primary/20 rounded px-1 text-right text-primary focus:outline-none h-7 md:h-auto"
-                          value={draftUpdates[b.id]?.limitAmount ?? b.limit}
+                          value={(() => {
+                            const draft = draftUpdates[b.id]?.limitAmount;
+                            return draft !== undefined ? formatCurrencyInput(draft) : formatCurrencyInput(b.limit);
+                          })()}
                           onChange={(
                             e: React.ChangeEvent<HTMLInputElement>,
                           ) => {
-                            const val = parseInt(e.target.value) || 0;
+                            const val = parseInt(parseCurrencyInput(e.target.value)) || 0;
                             setDraftUpdates((prev) => ({
                               ...prev,
                               [b.id]: { ...prev[b.id], limitAmount: val },
@@ -503,13 +506,17 @@ const Budget: React.FC = () => {
             />
 
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               placeholder="Limit (Rp)"
               className="mx-auto text-center bg-transparent border-b border-slate-300 dark:border-white/10 focus:border-primary outline-none text-xs md:text-sm w-full font-bold dark:text-white placeholder:text-center mt-1 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none m-0"
-              value={newCatLimit}
+              value={newCatLimit ? formatCurrencyInput(newCatLimit) : ""}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setNewCatLimit(e.target.value)
+                setNewCatLimit(parseCurrencyInput(e.target.value))
               }
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleAddCategory();
+              }}
             />
             <button
               onClick={handleAddCategory}
@@ -542,12 +549,16 @@ const Budget: React.FC = () => {
                   Nominal (Rp)
                 </label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   autoFocus
-                  value={txAmount}
+                  value={txAmount ? formatCurrencyInput(txAmount) : ""}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    setTxAmount(e.target.value)
+                    setTxAmount(parseCurrencyInput(e.target.value))
                   }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleTxSubmit();
+                  }}
                   className="w-full mt-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-black dark:text-white focus:border-primary outline-none text-xl font-bold"
                   placeholder="0"
                 />

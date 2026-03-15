@@ -24,26 +24,36 @@ export async function getMonthlySummary(month: string, date?: string, startDate?
   const filteredTxs = await getFilteredTransactions(month, date, startDate, endDate);
   const allSavings = await db.savings.toArray();
 
-  const globalIncome = allTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const globalExpense = allTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const globalIncome = allTxs.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount || 0), 0);
+  const globalExpense = allTxs.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount || 0), 0);
   const globalBalance = globalIncome - globalExpense;
 
-  const totalIncome = filteredTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const totalExpense = filteredTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-  const savingsTotal = allSavings.reduce((s, t) => s + t.current, 0);
+  // Pure focus: Saldo Masuk is Gross Income, Saldo Keluar is Net Expense
+  const incomeTxs = filteredTxs.filter(t => t.type === 'income');
+  const expenseTxs = filteredTxs.filter(t => t.type === 'expense');
+
+  const totalIncome = incomeTxs.reduce((s, t) => s + Number(t.amount || 0), 0);
+  const totalExpense = expenseTxs.reduce((s, t) => s + Number(t.amount || 0), 0);
+  
+  const savingsTotal = allSavings.reduce((s, t) => s + Number(t.current || 0), 0);
 
   // Trend grouping: Hourly if single day, else Daily
   const trendData = new Map<string, number>();
   const isSingleDay = date || (startDate && endDate && startDate === endDate);
 
-  filteredTxs.filter(t => t.type === 'expense').forEach(t => {
+  expenseTxs.filter(t => t.amount > 0).forEach(t => {
     let key = t.date.split('T')[0]; // Default Daily
     if (isSingleDay) {
-      // Group by hour for single day view
-      const hour = t.date.split('T')[1].split(':')[0];
-      key = `${hour}:00`;
+      // Group by hour for single day view, safely handle dates without time
+      const timePart = t.date.split('T')[1];
+      if (timePart) {
+        const hour = timePart.split(':')[0];
+        key = `${hour}:00`;
+      } else {
+        key = '00:00'; // Default to start of day if no time
+      }
     }
-    trendData.set(key, (trendData.get(key) || 0) + t.amount);
+    trendData.set(key, (trendData.get(key) || 0) + Number(t.amount || 0));
   });
 
   const dailyExpenses = Array.from(trendData.entries())

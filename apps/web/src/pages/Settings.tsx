@@ -119,10 +119,10 @@ const Settings = ({ darkMode, setDarkMode }: SettingsProps) => {
               <img
                 src={avatarUrl}
                 alt={userName}
-                className={`w-20 h-20 md:w-16 md:h-16 rounded-2xl md:rounded-2xl object-cover shadow-lg shadow-primary/20 ${isUpdating ? 'opacity-50' : 'group-hover:opacity-75'} transition-opacity`}
+                className={`w-20 h-20 md:w-24 md:h-24 rounded-full aspect-square object-cover shadow-xl shadow-primary/20 bg-primary/10 border-2 border-white dark:border-white/20 ${isUpdating ? 'opacity-50' : 'group-hover:opacity-75'} transition-all duration-300`}
               />
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded-2xl">
-                 <span className="material-symbols-outlined text-white drop-shadow-md">photo_camera</span>
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 rounded-full">
+                 <span className="material-symbols-outlined text-white drop-shadow-md text-3xl">photo_camera</span>
               </div>
             </div>
 
@@ -140,11 +140,11 @@ const Settings = ({ darkMode, setDarkMode }: SettingsProps) => {
               <button
                 onClick={handleRemoveImage}
                 disabled={isUpdating}
-                className="absolute -top-1 -right-1 md:-right-3 rounded-full shadow-sm z-10"
+                className="absolute -top-1 -right-1  hidden group-hover:block p-1.5 shadow-lg z-10 cursor-pointer"
                 title="Hapus Foto Profil"
               >
                 <span 
-                  className="material-symbols-outlined block text-red-500 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" 
+                  className="material-symbols-outlined block text-rose-500" 
                   style={{ fontSize: '18px' }}
                 >
                   delete
