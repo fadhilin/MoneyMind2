@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Preferences } from '@capacitor/preferences';
 import { db } from '../lib/db';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -36,7 +37,7 @@ export default function ProfileSetup() {
       createdAt: existing?.createdAt || new Date().toISOString()
     });
 
-    localStorage.setItem('has_profile', 'true');
+    await Preferences.set({ key: 'has_profile', value: 'true' });
     navigate('/dashboard', { replace: true });
   };
 

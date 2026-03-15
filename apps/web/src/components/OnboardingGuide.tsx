@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Preferences } from '@capacitor/preferences';
 import { useAuth } from '../hooks/useAuth';
 
 const STEPS = [
@@ -39,18 +40,20 @@ const OnboardingGuide: React.FC = () => {
 
   useEffect(() => {
     // Check if user has seen the guide
-    if (user?.id) {
-      const hasSeen = localStorage.getItem(`finance_control_onboarded_${user.id}`);
-      if (!hasSeen) {
-        // eslint-disable-next-line
-        setIsOpen(true);
+    const checkOnboarding = async () => {
+      if (user?.id) {
+        const { value: hasSeen } = await Preferences.get({ key: `finance_control_onboarded_${user.id}` });
+        if (!hasSeen) {
+          setIsOpen(true);
+        }
       }
-    }
+    };
+    checkOnboarding();
   }, [user]);
 
-  const handleClose = () => {
+  const handleClose = async () => {
     if (user?.id) {
-      localStorage.setItem(`finance_control_onboarded_${user.id}`, 'true');
+      await Preferences.set({ key: `finance_control_onboarded_${user.id}`, value: 'true' });
     }
     setIsOpen(false);
   };

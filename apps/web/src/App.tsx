@@ -17,6 +17,7 @@ import Savings from "./pages/Savings";
 import Reports from "./pages/Reports";
 import ProfileSetup from "./pages/ProfileSetup";
 import Settings from "./pages/Settings";
+import { Preferences } from "@capacitor/preferences";
 
 // ─── Type Definitions ────────────────────────────────────────────────────────
 declare const __APP_VERSION__: string;
@@ -75,24 +76,26 @@ const ProtectedRoutes = ({ darkMode }: { darkMode: boolean }) => {
 
   return <Layout darkMode={darkMode} />;
 };
-
 function App() {
   // ─── 2. Logic Cache Busting (Force Update) ──────────────────────────────────
   useEffect(() => {
-    try {
-      const currentVersion =
-        typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "0.0.0";
-      const savedVersion = localStorage.getItem("app_version");
+    const checkVersion = async () => {
+      try {
+        const currentVersion =
+          typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "0.0.0";
+        const { value: savedVersion } = await Preferences.get({ key: "app_version" });
 
-      if (savedVersion && savedVersion !== currentVersion) {
-        localStorage.setItem("app_version", currentVersion);
-        window.location.reload();
-      } else if (!savedVersion) {
-        localStorage.setItem("app_version", currentVersion);
+        if (savedVersion && savedVersion !== currentVersion) {
+          await Preferences.set({ key: "app_version", value: currentVersion });
+          window.location.reload();
+        } else if (!savedVersion) {
+          await Preferences.set({ key: "app_version", value: currentVersion });
+        }
+      } catch (e) {
+        console.warn("Version check failed:", e);
       }
-    } catch (e) {
-      console.warn("Version check failed:", e);
-    }
+    };
+    checkVersion();
   }, []);
 
   // ─── 3. Offline Background Sync ─────────────────────────────────────────────
@@ -106,19 +109,27 @@ function App() {
   }, []);
 
   // ─── 4. Dark Mode Logic ────────────────────────────────────────────────────
-  const [darkMode, setDarkMode] = useState<boolean>(() => {
-    const savedTheme = localStorage.getItem("theme");
-    return savedTheme !== "light";
-  });
+  const [darkMode, setDarkMode] = useState<boolean>(true);
 
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
+    const loadTheme = async () => {
+      const { value: savedTheme } = await Preferences.get({ key: "theme" });
+      setDarkMode(savedTheme !== "light");
+    };
+    loadTheme();
+  }, []);
+
+  useEffect(() => {
+    const updateTheme = async () => {
+      if (darkMode) {
+        document.documentElement.classList.add("dark");
+        await Preferences.set({ key: "theme", value: "dark" });
+      } else {
+        document.documentElement.classList.remove("dark");
+        await Preferences.set({ key: "theme", value: "light" });
+      }
+    };
+    updateTheme();
   }, [darkMode]);
 
   return (

@@ -2,37 +2,51 @@ import React, { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { Transaction, Budget, Saving } from '../types/finance';
 import { FinanceContext } from './FinanceContextCore';
+import { Preferences } from '@capacitor/preferences';
 
 
 export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    const saved = localStorage.getItem('fc_transactions');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [budgets, setBudgets] = useState<Budget[]>(() => {
-    const saved = localStorage.getItem('fc_budgets');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [savings, setSavings] = useState<Saving[]>(() => {
-    const saved = localStorage.getItem('fc_savings');
-    return saved ? JSON.parse(saved) : [];
-  });
-
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [savings, setSavings] = useState<Saving[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
 
+  // Load data on mount
   useEffect(() => {
-    localStorage.setItem('fc_transactions', JSON.stringify(transactions));
-  }, [transactions]);
+    const loadData = async () => {
+      try {
+        const { value: t } = await Preferences.get({ key: 'fc_transactions' });
+        const { value: b } = await Preferences.get({ key: 'fc_budgets' });
+        const { value: s } = await Preferences.get({ key: 'fc_savings' });
+        
+        if (t) setTransactions(JSON.parse(t));
+        if (b) setBudgets(JSON.parse(b));
+        if (s) setSavings(JSON.parse(s));
+      } catch (error) {
+        console.error('Error loading data from Preferences:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  // Sync data to Preferences
+  useEffect(() => {
+    if (isLoading) return;
+    Preferences.set({ key: 'fc_transactions', value: JSON.stringify(transactions) });
+  }, [transactions, isLoading]);
 
   useEffect(() => {
-    localStorage.setItem('fc_budgets', JSON.stringify(budgets));
-  }, [budgets]);
+    if (isLoading) return;
+    Preferences.set({ key: 'fc_budgets', value: JSON.stringify(budgets) });
+  }, [budgets, isLoading]);
 
   useEffect(() => {
-    localStorage.setItem('fc_savings', JSON.stringify(savings));
-  }, [savings]);
+    if (isLoading) return;
+    Preferences.set({ key: 'fc_savings', value: JSON.stringify(savings) });
+  }, [savings, isLoading]);
 
   const addTransaction = (t: Omit<Transaction, 'id'>) => {
     const newTransaction = { ...t, id: Date.now().toString() };
@@ -200,6 +214,14 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     setSavings(prev => prev.map(s => ({ ...s, current: 0 })));
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
     <FinanceContext.Provider value={{

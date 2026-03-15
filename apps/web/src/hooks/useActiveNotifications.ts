@@ -4,6 +4,7 @@ import { useBudgets } from './useBudgets';
 import { useSavings } from './useSavings';
 import { useGlobalDate } from './useGlobalDate';
 import { useSettings } from './useSettings';
+import { Preferences } from '@capacitor/preferences';
 
 export interface Notification {
   id: string;
@@ -22,37 +23,42 @@ export function useActiveNotifications() {
   const { data: savings = [] } = useSavings();
   const { data: settings } = useSettings();
 
-  const [dismissedIds, setDismissedIds] = useState<string[]>(() => {
-    const saved = localStorage.getItem('dismissed_notifs');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [dismissedIds, setDismissedIds] = useState<string[]>([]);
 
   useEffect(() => {
-    const handleSync = () => {
-      const saved = localStorage.getItem('dismissed_notifs');
+    const loadDismissed = async () => {
+      const { value: saved } = await Preferences.get({ key: 'dismissed_notifs' });
+      if (saved) setDismissedIds(JSON.parse(saved));
+    };
+    loadDismissed();
+
+    const handleSync = async () => {
+      const { value: saved } = await Preferences.get({ key: 'dismissed_notifs' });
       setDismissedIds(saved ? JSON.parse(saved) : []);
     };
     window.addEventListener('notif-sync', handleSync);
     return () => window.removeEventListener('notif-sync', handleSync);
   }, []);
 
-  const handleDismiss = (id: string) => {
-    setDismissedIds((prev) => {
-      const next = [...prev, id];
-      localStorage.setItem('dismissed_notifs', JSON.stringify(next));
-      window.dispatchEvent(new Event('notif-sync'));
-      return next;
+  const handleDismiss = async (id: string) => {
+    const next = [...dismissedIds, id];
+    setDismissedIds(next);
+    await Preferences.set({
+      key: 'dismissed_notifs',
+      value: JSON.stringify(next)
     });
+    window.dispatchEvent(new Event('notif-sync'));
   };
 
-  const handleDismissAll = (ids: string[]) => {
+  const handleDismissAll = async (ids: string[]) => {
     if (ids.length > 0) {
-      setDismissedIds((prev) => {
-        const next = [...prev, ...ids];
-        localStorage.setItem('dismissed_notifs', JSON.stringify(next));
-        window.dispatchEvent(new Event('notif-sync'));
-        return next;
+      const next = [...dismissedIds, ...ids];
+      setDismissedIds(next);
+      await Preferences.set({
+        key: 'dismissed_notifs',
+        value: JSON.stringify(next)
       });
+      window.dispatchEvent(new Event('notif-sync'));
     }
   };
 

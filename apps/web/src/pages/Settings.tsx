@@ -1,6 +1,7 @@
 import { useState, useRef, type Dispatch, type SetStateAction } from 'react';
 import { signOut } from '../lib/auth-client';
 import { useSettings, useUpdateSettings } from '../hooks/useSettings';
+import { Preferences } from '@capacitor/preferences';
 import { useAuth } from '../hooks/useAuth';
 import { db } from '../lib/db';
 
@@ -32,8 +33,8 @@ const Settings = ({ darkMode, setDarkMode }: SettingsProps) => {
   };
 
   const handleLogout = async () => {
-    localStorage.removeItem('globalDate');
-    localStorage.removeItem('has_profile');
+    await Preferences.remove({ key: 'globalDate' });
+    await Preferences.remove({ key: 'has_profile' });
     await signOut();
   };
 

@@ -1,3 +1,5 @@
+import { Preferences } from '@capacitor/preferences';
+
 export interface UserSettings {
   id: string;
   userId: string;
@@ -7,7 +9,7 @@ export interface UserSettings {
 }
 
 export async function getSettings(): Promise<UserSettings> {
-  const saved = localStorage.getItem('user_settings');
+  const { value: saved } = await Preferences.get({ key: 'user_settings' });
   if (saved) return JSON.parse(saved);
   return {
     id: 'local',
@@ -24,6 +26,9 @@ export async function updateSettings(data: { notificationsEnabled?: boolean }): 
     current.notificationsEnabled = data.notificationsEnabled;
   }
   current.updatedAt = new Date().toISOString();
-  localStorage.setItem('user_settings', JSON.stringify(current));
+  await Preferences.set({
+    key: 'user_settings',
+    value: JSON.stringify(current)
+  });
   return current;
 }
