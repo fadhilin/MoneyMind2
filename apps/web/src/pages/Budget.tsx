@@ -16,7 +16,7 @@ import { formatCurrencyInput, parseCurrencyInput } from "../utils/formatters";
 const Budget: React.FC = () => {
   const [globalDate] = useGlobalDate();
   const selectedMonth = globalDate.slice(0, 7);
-  const { data: budgets = [], isLoading } = useBudgets(selectedMonth);
+  const { data: budgets = [], isLoading } = useBudgets(selectedMonth, globalDate);
   const { data: monthSummary } = useMonthlySummary({ month: selectedMonth });
   const { data: dailySummary } = useMonthlySummary({
     month: selectedMonth,

@@ -25,21 +25,45 @@ export async function getBudgets(
 ): Promise<Budget[]> {
   let budgets = await db.budgets.toArray();
 
-  if (month) {
+  const isDefaultMakan = (cat: string) =>
+    cat.toLowerCase() === "makan & minum" ||
+    cat.toLowerCase() === "makan dan minum";
+  const isDefaultTransport = (cat: string) =>
+    cat.toLowerCase() === "transportasi";
+
+  if (date) {
+    // Filter strictly by date
+    budgets = budgets.filter((b) => b.date === date);
+
+    // Ensure default categories exist for this specific date
+    const hasMakan = budgets.some((b) => isDefaultMakan(b.category));
+    const hasTransport = budgets.some((b) => isDefaultTransport(b.category));
+
+    if (!hasMakan) {
+      const newM = await createBudget({
+        category: "Makan & Minum",
+        icon: "restaurant",
+        color: "orange-500",
+        date: date,
+      });
+      budgets.push(newM);
+    }
+    if (!hasTransport) {
+      const newT = await createBudget({
+        category: "Transportasi",
+        icon: "directions_car",
+        color: "blue-500",
+        date: date,
+      });
+      budgets.push(newT);
+    }
+  } else if (month) {
     const prefix = month;
     budgets = budgets.filter((b) => !b.date || b.date.startsWith(prefix));
 
-    // Helper to normalize and check default categories
-    const isDefaultMakan = (cat: string) => 
-      cat.toLowerCase() === "makan & minum" || 
-      cat.toLowerCase() === "makan dan minum";
-    const isDefaultTransport = (cat: string) => 
-      cat.toLowerCase() === "transportasi";
-
-    // Filter out duplicates if they exist (e.g. if somehow two "Makan" categories exists)
-    // We'll keep the first one found and mark others for deletion or just hide them
+    // Filter out duplicates if they exist
     const seenCategories = new Set<string>();
-    budgets = budgets.filter(b => {
+    budgets = budgets.filter((b) => {
       if (isDefaultMakan(b.category)) {
         if (seenCategories.has("default_makan")) return false;
         seenCategories.add("default_makan");
@@ -53,7 +77,7 @@ export async function getBudgets(
       return true;
     });
 
-    // Ensure default categories exist
+    // Ensure default categories exist for the month (usually as -01)
     const hasMakan = budgets.some((b) => isDefaultMakan(b.category));
     const hasTransport = budgets.some((b) => isDefaultTransport(b.category));
 
