@@ -312,6 +312,9 @@ const Budget: React.FC = () => {
               if (isTransport(a.category)) return -1;
               if (isTransport(b.category)) return 1;
 
+              const sortA = a.createdAt || "0";
+              const sortB = b.createdAt || "0";
+              if (sortA !== sortB) return sortA.localeCompare(sortB);
               return a.id.localeCompare(b.id);
             })
             .map((b: BudgetType) => {

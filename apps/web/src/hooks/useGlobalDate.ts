@@ -30,5 +30,8 @@ export const useGlobalDate = (): [string, (date: string) => void] => {
     return () => window.removeEventListener(EVENT_NAME, handleStorageChange);
   }, []);
   
-  return [date, (d) => { setGlobalDate(d); }];
-};
+  return [date, (d: string) => {
+    setDate(d); // Update local state immediately
+    setGlobalDate(d); // Persist and notify others
+  }];
+}

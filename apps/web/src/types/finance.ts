@@ -22,6 +22,7 @@ export interface Budget {
   color: string;
   description?: string;
   date?: string | null;
+  createdAt?: string;
 }
 
 /** UI-facing saving type (uses 'target'/'current' for backward compat) */

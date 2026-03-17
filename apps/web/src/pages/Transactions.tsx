@@ -13,7 +13,7 @@ const Transactions: React.FC = () => {
 
   const { data, isLoading } = useTransactions({
     month: selectedMonth,
-    // Remover date filter so it shows the whole month history
+    date: globalDate, // Filter by the specific date selected
     type: filter === 'all' ? undefined : filter,
     search: search || undefined,
   });
@@ -159,7 +159,7 @@ const Transactions: React.FC = () => {
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-slate-400">
             <span className="material-symbols-outlined text-6xl mb-4">history_toggle_off</span>
-            <p className="font-medium text-lg">Tidak ada transaksi ditemukan</p>
+            <p className="font-medium text-lg">Data tidak ada</p>
             <p className="text-sm">Mungkin kamu bisa mencatat sesuatu hari ini?</p>
           </div>
         )}

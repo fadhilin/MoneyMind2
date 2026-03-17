@@ -136,6 +136,7 @@ export async function createBudget(input: CreateBudgetInput): Promise<Budget> {
     color: input.color || "#cccccc",
     description: input.description,
     date: input.date,
+    createdAt: new Date().toISOString(),
   };
   await db.budgets.add(newBudget);
   return newBudget;
