@@ -170,8 +170,8 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
 
     const recognition = new SpeechRecognition();
     recognition.lang = "id-ID";
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
+    recognition.continuous = false;
+    recognition.interimResults = true;
     recognitionRef.current = recognition;
 
     recognition.onstart = () => {
@@ -181,14 +181,43 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
       setIsEditingVoiceCategory(false);
     };
 
-    recognition.onresult = (event: Event | any) => {
-      const transcript = event.results[0][0].transcript;
-      setVoiceResult(transcript);
-      parseVoiceCommand(transcript);
+    recognition.onaudiostart = () => {
+      setVoiceResult("Mulai merekam audio...");
+    };
+
+    recognition.onsoundstart = () => {
+      setVoiceResult("Mendeteksi suara...");
+    };
+
+    recognition.onspeechstart = () => {
+      setVoiceResult("Mendeteksi ucapan...");
+    };
+
+    recognition.onspeechend = () => {
+      setVoiceResult("Berhenti bicara, memproses...");
+    };
+
+    recognition.onnomatch = () => {
+      setVoiceResult("Suara tidak dapat dikenali.");
+      setIsRecording(false);
+    };
+
+    recognition.onresult = (event: any) => {
+      let currentTranscript = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          setVoiceResult(transcript);
+          parseVoiceCommand(transcript);
+        } else {
+          currentTranscript += transcript;
+          setVoiceResult(currentTranscript + "...");
+        }
+      }
     };
 
     recognition.onerror = (event: Event | any) => {
-      setVoiceResult("Error: " + event.error);
+      setVoiceResult("Error (" + event.error + "): Modul suara gagal");
       setIsRecording(false);
     };
 
@@ -483,8 +512,7 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
                         <div className="absolute inset-0 bg-rose-500/20 rounded-full scale-150 animate-ping"></div>
                     )}
                     <button
-                        onClick={(e) => {
-                           e.preventDefault();
+                        onClick={() => {
                            if (isRecording) {
                                stopRecording();
                            } else {

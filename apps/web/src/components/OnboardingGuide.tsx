@@ -26,7 +26,7 @@ const STEPS = [
   },
   {
     title: 'Mulai Catat Transaksimu',
-    description: 'Gunakan tombol + Transaksi Baru di sidebar Dashboard untuk mulai mencatat pemasukan dan pengeluaran harian.',
+    description: 'Gunakan tombol + Catat Pemasukan untuk menambahkan pemasukan Anda dan logo petir di bagian bawah halaman beranda untuk mencatat pengeluaran Anda.',
     icon: 'add_circle',
     color: 'text-rose-500',
     bg: 'bg-rose-500/10'
