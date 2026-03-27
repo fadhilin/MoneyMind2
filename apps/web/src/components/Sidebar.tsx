@@ -153,7 +153,7 @@ const Sidebar = ({ darkMode, isOpen, onClose, onOpenModal }: SidebarProps) => {
             className={linkClass({ isActive: false })}
           >
             <span className="material-symbols-outlined text-[22px]">add</span>
-            <span className="text-sm font-medium">Transaksi Baru</span>
+            <span className="text-sm font-medium">Catat Pemasukan</span>
           </button>
         </nav>
       </div>

@@ -5,11 +5,14 @@ import {
   Route,
   Outlet,
   Navigate,
+  useLocation,
+  useNavigate,
 } from "react-router-dom";
 import { useSession } from "./lib/auth-client";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import TransaksiInput from "./components/TransaksiInput";
+import QuickInput from "./components/QuickInput";
 import Dashboard from "./pages/Dashboard";
 import Transactions from "./pages/Transactions";
 import Budget from "./pages/Budget";
@@ -26,6 +29,22 @@ declare const __APP_VERSION__: string;
 const Layout = ({ darkMode }: { darkMode: boolean }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isQuickInputOpen, setIsQuickInputOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (location.pathname === "/quick") {
+      setIsQuickInputOpen(true);
+      navigate("/dashboard", { replace: true });
+    }
+  }, [location.pathname, navigate]);
+
+  useEffect(() => {
+    const handleOpenQuick = () => setIsQuickInputOpen(true);
+    window.addEventListener("open-quick-input", handleOpenQuick);
+    return () => window.removeEventListener("open-quick-input", handleOpenQuick);
+  }, []);
 
   return (
     <div className="flex h-dvh overflow-hidden bg-background-light dark:bg-background-dark transition-colors duration-300 text-black dark:text-white">
@@ -53,6 +72,11 @@ const Layout = ({ darkMode }: { darkMode: boolean }) => {
       <TransaksiInput
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+      />
+      
+      <QuickInput
+        isOpen={isQuickInputOpen}
+        onClose={() => setIsQuickInputOpen(false)}
       />
     </div>
   );
@@ -147,6 +171,7 @@ function App() {
             element={<Settings darkMode={darkMode} setDarkMode={setDarkMode} />}
           />
         </Route>
+        <Route path="/quick" element={<ProtectedRoutes darkMode={darkMode} />} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/setup" replace />} />
       </Routes>

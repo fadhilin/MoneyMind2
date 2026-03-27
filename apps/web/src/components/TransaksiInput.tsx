@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import type { TransactionType } from "../types/finance";
 import { useCreateTransaction } from "../hooks/useTransactions";
-import { useBudgets } from "../hooks/useBudgets";
-import { useMonthlySummary } from "../hooks/useReports";
 import { useGlobalDate } from "../hooks/useGlobalDate";
 import { formatCurrencyInput, parseCurrencyInput } from "../utils/formatters";
 
@@ -33,18 +31,12 @@ const incomeCategories = [
 const TransaksiInput: React.FC<TransaksiInputProps> = ({ isOpen, onClose }) => {
   const [globalDate, setGlobalDate] = useGlobalDate();
   const [date, setDate] = useState<string>(globalDate);
-  const [type, setType] = useState<TransactionType>("expense");
+  const type: TransactionType = "income";
   const [amount, setAmount] = useState<string>("0");
   const [category, setCategory] = useState<string>("");
   const [note, setNote] = useState<string>("");
 
-  const txMonth = date ? date.slice(0, 7) : globalDate.slice(0, 7);
-  const { data: budgets = [] } = useBudgets(txMonth);
-  const { data: summary } = useMonthlySummary({ month: txMonth });
   const createTransaction = useCreateTransaction();
-
-  const totalIncome = summary?.totalIncome ?? 0;
-  const safetySpend = summary?.safetySpend ?? 0;
 
   // Sync internal date state with global date whenever it changes or modal opens
   React.useEffect(() => {
@@ -54,7 +46,6 @@ const TransaksiInput: React.FC<TransaksiInputProps> = ({ isOpen, onClose }) => {
   }, [globalDate, isOpen]);
 
   const resetForm = () => {
-    setType("expense");
     setAmount("0");
     setCategory("");
     setNote("");
@@ -66,14 +57,7 @@ const TransaksiInput: React.FC<TransaksiInputProps> = ({ isOpen, onClose }) => {
     onClose();
   };
 
-  const displayCategories =
-    type === "income"
-      ? incomeCategories
-      : budgets.map((b) => ({
-          name: b.category,
-          icon: b.icon,
-          color: b.color,
-        }));
+  const displayCategories = incomeCategories;
 
   if (!isOpen) return null;
 
@@ -85,17 +69,6 @@ const TransaksiInput: React.FC<TransaksiInputProps> = ({ isOpen, onClose }) => {
     const numAmount = parseInt(amount);
     if (numAmount <= 0) return alert("Masukkan nominal yang valid");
     if (!category) return alert("Pilih kategori terlebih dahulu");
-
-    if (type === "expense") {
-      if (totalIncome === 0) {
-        return alert("Gagal! Silahkan input pemasukan terlebih dahulu.");
-      }
-      if (numAmount > safetySpend) {
-        if (!window.confirm("Melebihi safety spend. Tetap simpan?")) {
-          return;
-        }
-      }
-    }
 
     const selectedCat = displayCategories.find((c) => c.name === category);
     const serverData: TransactionCreateInput = {
@@ -131,7 +104,7 @@ const TransaksiInput: React.FC<TransaksiInputProps> = ({ isOpen, onClose }) => {
         <header className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-primary/10 select-none">
           <div className="flex items-center gap-3">
             <h2 className="text-xl font-bold text-black dark:text-white">
-              Catat Transaksi
+              Catat Pemasukan
             </h2>
           </div>
           <button
@@ -143,42 +116,7 @@ const TransaksiInput: React.FC<TransaksiInputProps> = ({ isOpen, onClose }) => {
         </header>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar">
-          <div className="px-6 py-6 select-none">
-            <div className="flex gap-2">
-              <label className="flex-1 cursor-pointer">
-                <input
-                  checked={type === "expense"}
-                  onChange={() => {
-                    setType("expense");
-                    setCategory("");
-                  }}
-                  className="hidden peer"
-                  name="type"
-                  type="radio"
-                />
-                <div className="py-3 text-center rounded-2xl text-sm font-bold transition-all bg-slate-400 dark:bg-white/5 peer-checked:bg-rose-500 peer-checked:text-white text-slate-600 dark:text-slate-400">
-                  Pengeluaran
-                </div>
-              </label>
-              <label className="flex-1 cursor-pointer">
-                <input
-                  checked={type === "income"}
-                  onChange={() => {
-                    setType("income");
-                    setCategory("");
-                  }}
-                  className="hidden peer"
-                  name="type"
-                  type="radio"
-                />
-                <div className="py-3 text-center rounded-2xl text-sm font-bold transition-all bg-slate-400 dark:bg-white/5 peer-checked:bg-emerald-500 peer-checked:text-white text-slate-600 dark:text-slate-400">
-                  Pemasukan
-                </div>
-              </label>
-            </div>
-          </div>
-
-          <div className="px-6 py-10 text-center bg-black/5 dark:bg-white/5 border border-slate-200 dark:border-white/5 mx-6 rounded-3xl mb-8 select-none">
+          <div className="px-6 py-10 mt-6 text-center bg-black/5 dark:bg-white/5 border border-slate-200 dark:border-white/5 mx-6 rounded-3xl mb-8 select-none">
             <p className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-widest mb-2">
               Nominal Transaksi
             </p>

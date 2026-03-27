@@ -42,5 +42,18 @@
       "sizes": "512x512",
       "purpose": "any maskable"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Catat Pengeluaran Cepat",
+      "short_name": "Quick Input",
+      "url": "/quick",
+      "icons": [
+        {
+          "src": "../icons/icon-96.webp",
+          "sizes": "96x96"
+        }
+      ]
+    }
   ]
 }
