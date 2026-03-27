@@ -58,7 +58,7 @@ const Header = ({ darkMode, isSidebarOpen = false, onMenuClick }: HeaderProps) =
   const location = useLocation();
   
   // Pages where the calendar should NOT appear
-  const hideDatePages = ['/transactions', '/savings'];
+  const hideDatePages = ['/transactions', '/savings', '/settings', '/reports', '/budget'];
   const showCalendar = !hideDatePages.includes(location.pathname);
   
   // Pages where globalDate should be forced to today
