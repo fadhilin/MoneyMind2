@@ -3,6 +3,8 @@ import { useAuth } from '../hooks/useAuth';
 import NotificationPanel from './NotificationPanel';
 import { useActiveNotifications } from '../hooks/useActiveNotifications';
 import { useGlobalDate } from '../hooks/useGlobalDate';
+import { useGlobalReportPeriod } from '../hooks/useGlobalReportPeriod';
+import { getReportLabel } from '../utils/dateUtils';
 import { useLocation } from 'react-router-dom';
 
 interface HeaderProps {
@@ -52,13 +54,14 @@ const NotificationBell = ({ showNotifs, setShowNotifs, notificationsEnabled, not
 const Header = ({ darkMode, isSidebarOpen = false, onMenuClick }: HeaderProps) => {
   const { user } = useAuth();
   const [globalDate, setGlobalDate] = useGlobalDate();
+  const [reportPeriod] = useGlobalReportPeriod();
   const selectedDateObj = new Date(globalDate);
   const [showNotifs, setShowNotifs] = useState(false);
   const dateInputRef = useRef<HTMLInputElement>(null);
   const location = useLocation();
   
   // Pages where the calendar should NOT appear
-  const hideDatePages = ['/transactions', '/savings', '/settings', '/reports', '/budget'];
+  const hideDatePages = ['/transactions', '/savings', '/settings'];
   const showCalendar = !hideDatePages.includes(location.pathname);
   
   // Pages where globalDate should be forced to today
@@ -84,13 +87,33 @@ const Header = ({ darkMode, isSidebarOpen = false, onMenuClick }: HeaderProps) =
 
   const handlePrevDay = () => {
     const newDate = new Date(globalDate);
-    newDate.setDate(newDate.getDate() - 1);
+    if (location.pathname === '/reports') {
+      if (reportPeriod === 'weekly') {
+        newDate.setDate(newDate.getDate() - 7);
+      } else if (reportPeriod === 'monthly') {
+        newDate.setMonth(newDate.getMonth() - 1);
+      } else {
+        newDate.setDate(newDate.getDate() - 1);
+      }
+    } else {
+      newDate.setDate(newDate.getDate() - 1);
+    }
     setGlobalDate(newDate.toISOString().split('T')[0]);
   };
 
   const handleNextDay = () => {
     const newDate = new Date(globalDate);
-    newDate.setDate(newDate.getDate() + 1);
+    if (location.pathname === '/reports') {
+      if (reportPeriod === 'weekly') {
+        newDate.setDate(newDate.getDate() + 7);
+      } else if (reportPeriod === 'monthly') {
+        newDate.setMonth(newDate.getMonth() + 1);
+      } else {
+        newDate.setDate(newDate.getDate() + 1);
+      }
+    } else {
+      newDate.setDate(newDate.getDate() + 1);
+    }
     setGlobalDate(newDate.toISOString().split('T')[0]);
   };
 
@@ -170,7 +193,9 @@ const Header = ({ darkMode, isSidebarOpen = false, onMenuClick }: HeaderProps) =
                 />
                 <div className="flex items-center gap-2 px-3 py-1.5 text-sm font-bold text-black dark:text-white transition-colors hover:text-primary z-10">
                   <span className="material-symbols-outlined text-base text-primary">calendar_today</span>
-                  {selectedDateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  {location.pathname === '/reports' 
+                    ? getReportLabel(globalDate, reportPeriod)
+                    : selectedDateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </div>
               </button>
 

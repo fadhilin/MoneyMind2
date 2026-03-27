@@ -11,13 +11,13 @@ import * as XLSX from "xlsx";
 import { Filesystem, Directory } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
 import { Capacitor } from "@capacitor/core";
-
-type ReportPeriod = "daily" | "weekly" | "monthly";
+import { useGlobalReportPeriod, type ReportPeriod } from "../hooks/useGlobalReportPeriod";
+import { getReportLabel } from "../utils/dateUtils";
 
 const Reports: React.FC = () => {
   const [globalDate] = useGlobalDate();
+  const [reportPeriod, setReportPeriod] = useGlobalReportPeriod();
 
-  const [reportPeriod, setReportPeriod] = useState<ReportPeriod>("monthly");
   const [reportDate, setReportDate] = useState<string>(globalDate);
 
   // Helper to format date string to YYYY-MM-DD
@@ -36,29 +36,15 @@ const Reports: React.FC = () => {
     // Default: Monthly
     let startDate = `${monthStr}-01`;
     let endDate = formatDate(new Date(year, month + 1, 0));
-    let label = new Date(`${monthStr}-01`).toLocaleDateString("id-ID", {
-      month: "long",
-      year: "numeric",
-    });
 
     if (reportPeriod === "daily") {
       startDate = reportDate;
       endDate = reportDate;
-      label = new Date(reportDate).toLocaleDateString("id-ID", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      });
     } else if (reportPeriod === "weekly") {
-      // 7-day rolling window based on days since start of year
       const dCopy = new Date(year, month, day);
       const startOfYear = new Date(year, 0, 1);
-
-      // Calculate days difference (ignore sub-day precision)
       const diffTime = dCopy.getTime() - startOfYear.getTime();
       const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-      // Zero-indexed week
       const weekIndex = Math.floor(diffDays / 7);
 
       const wStart = new Date(year, 0, 1 + weekIndex * 7);
@@ -66,22 +52,9 @@ const Reports: React.FC = () => {
 
       startDate = formatDate(wStart);
       endDate = formatDate(wEnd);
-
-      const startMonthStr = wStart.toLocaleDateString("id-ID", {
-        month: "short",
-      });
-      const endMonthStr = wEnd.toLocaleDateString("id-ID", { month: "short" });
-      const sYearStr = wStart.getFullYear();
-      const eYearStr = wEnd.getFullYear();
-
-      if (wStart.getMonth() === wEnd.getMonth() && sYearStr === eYearStr) {
-        label = `${wStart.getDate()} - ${wEnd.getDate()} ${startMonthStr} ${eYearStr}`;
-      } else if (sYearStr === eYearStr) {
-        label = `${wStart.getDate()} ${startMonthStr} - ${wEnd.getDate()} ${endMonthStr} ${eYearStr}`;
-      } else {
-        label = `${wStart.getDate()} ${startMonthStr} ${sYearStr.toString().slice(2)} - ${wEnd.getDate()} ${endMonthStr} ${eYearStr.toString().slice(2)}`;
-      }
     }
+
+    const label = getReportLabel(reportDate, reportPeriod);
 
     return { month: monthStr, startDate, endDate, label };
   }, [reportDate, reportPeriod]);
