@@ -33,6 +33,6 @@ export function useAvatarStatus() {
   return useQuery({
     queryKey: [REPORTS_KEY, 'avatar-status'],
     queryFn: () => reportsService.getAvatarStatus(),
-    refetchInterval: 30000, // Refetch every 30 seconds for real-time feel
+    refetchInterval: 5000, // Refetch every 5 seconds for real-time feel
   });
 }

@@ -141,7 +141,7 @@ const Reports: React.FC = () => {
 
     // Sheet 2: Budgets
     const budgetHeaders = [["DISTRIBUSI ANGGARAN"], ["Kategori", "Limit", "Terpakai", "Sisa", "Persentase"]];
-    const budgetRows = budgetDist.length > 0 ? budgetDist.map((b: any) => [
+    const budgetRows = budgetDist.length > 0 ? budgetDist.map((b: { category: string; limit: number; spent: number; percent: number }) => [
       b.category,
       b.limit,
       b.spent,
@@ -151,7 +151,7 @@ const Reports: React.FC = () => {
 
     // Sheet 3: Transactions Breakdown
     const breakdownHeaders = [["BREAKDOWN TRANSAKSI"], ["Kategori", "Tipe", "Total (Rp)", "Frekuensi"]];
-    const breakdownRows = breakdown.length > 0 ? breakdown.map((item: any) => [
+    const breakdownRows = breakdown.length > 0 ? breakdown.map((item: { category: string; type: string; total: number; count: number }) => [
       item.category,
       item.type === "income" ? "Pemasukan" : "Pengeluaran",
       item.total,
@@ -203,25 +203,7 @@ const Reports: React.FC = () => {
     }
   };
 
-  const handlePrev = () => {
-    const d = new Date(reportDate);
-    if (reportPeriod === "daily") d.setDate(d.getDate() - 1);
-    else if (reportPeriod === "weekly") d.setDate(d.getDate() - 7);
-    else if (reportPeriod === "monthly") d.setMonth(d.getMonth() - 1);
 
-    const newDateStr = formatDate(d);
-    setReportDate(newDateStr);
-  };
-
-  const handleNext = () => {
-    const d = new Date(reportDate);
-    if (reportPeriod === "daily") d.setDate(d.getDate() + 1);
-    else if (reportPeriod === "weekly") d.setDate(d.getDate() + 7);
-    else if (reportPeriod === "monthly") d.setMonth(d.getMonth() + 1);
-
-    const newDateStr = formatDate(d);
-    setReportDate(newDateStr);
-  };
 
   return (
     <div className="max-w-6xl mx-auto pb-20 px-4 animate-in fade-in zoom-in-95 duration-500">
@@ -231,27 +213,6 @@ const Reports: React.FC = () => {
             <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-black dark:text-white">
               Laporan
             </h2>
-            <div className="flex items-center group bg-slate-100 dark:bg-white/5 rounded-full px-2 py-1 w-full sm:w-auto justify-between sm:justify-center">
-              <button
-                onClick={handlePrev}
-                className="flex items-center justify-center size-8 hover:bg-white dark:hover:bg-white/10 rounded-full transition-colors shrink-0 shadow-sm"
-              >
-                <span className="material-symbols-outlined text-sm">
-                  chevron_left
-                </span>
-              </button>
-              <div className="flex items-center justify-center px-4 min-w-30 text-center text-primary font-bold text-[13px] md:text-sm leading-none">
-                {periodParams.label}
-              </div>
-              <button
-                onClick={handleNext}
-                className="flex items-center justify-center size-8 hover:bg-white dark:hover:bg-white/10 rounded-full transition-colors shrink-0 shadow-sm"
-              >
-                <span className="material-symbols-outlined text-sm">
-                  chevron_right
-                </span>
-              </button>
-            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">

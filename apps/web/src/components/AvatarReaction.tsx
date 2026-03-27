@@ -51,6 +51,24 @@ const AvatarReaction: React.FC = () => {
           animation: "animate-shake",
           effect: "rain",
         };
+      case "DEBT_PAID":
+        return {
+          icon: "task_alt",
+          color: "text-emerald-500",
+          bg: "bg-emerald-100 dark:bg-emerald-900/30",
+          label: "Alhamdulillah hutang lunas!",
+          animation: "animate-bounce",
+          effect: "smile",
+        };
+      case "SAVED_MONEY":
+        return {
+          icon: "savings",
+          color: "text-sky-500",
+          bg: "bg-sky-100 dark:bg-sky-900/30",
+          label: "Ada duit masuk nih, mantap!",
+          animation: "animate-bounce",
+          effect: "smile",
+        };
       case "BUDGET_OVER_50":
         return {
           icon: "sentiment_dissatisfied",
@@ -69,6 +87,7 @@ const AvatarReaction: React.FC = () => {
           animation: "animate-float-slow",
           effect: "zzz",
         };
+      case "NORMAL":
       default:
         return {
           icon: "sentiment_satisfied",

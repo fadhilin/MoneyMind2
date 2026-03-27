@@ -202,7 +202,7 @@ const ReportSection: React.FC<ReportSectionProps> = ({ summary, budgetDist = [],
             {summary?.dailyExpenses && summary.dailyExpenses.length > 0 ? (
               <div className="relative w-full h-full group/chart">
                 {(() => {
-                  let data = [...summary.dailyExpenses];
+                  const data = [...summary.dailyExpenses];
                   
                   // If no data, show a flat line or better empty state
                   if (data.length === 0) return null;

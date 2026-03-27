@@ -23,11 +23,11 @@ interface TransactionCreateInput {
 
 const incomeCategories = [
   { name: "Gaji", icon: "payments", color: "emerald-500" },
-  { name: "Dagang", icon: "store", color: "blue-500" },
+  { name: "Narik/Dagang", icon: "store", color: "blue-500" },
   { name: "Pinjaman", icon: "account_balance_wallet", color: "blue-500" },
   { name: "Investasi", icon: "trending_up", color: "blue-500" },
   { name: "Bonus", icon: "redeem", color: "amber-500" },
-  { name: "Lainnya", icon: "more_horiz", color: "slate-500" },
+  { name: "Lain-lain", icon: "more_horiz", color: "slate-500" },
 ];
 
 const TransaksiInput: React.FC<TransaksiInputProps> = ({ isOpen, onClose }) => {
