@@ -239,11 +239,16 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
   };
 
     const parseVoiceCommand = (text: string) => {
-      const txt = text.toLowerCase();
-      // CLEANUP: Safari on iOS adds dots to numbers like "11.000".
-      // We strip dots and commas BEFORE parsing digits.
-      let processedTextForDigits = txt.replace(/\./g, "").replace(/,/g, "");
-      
+      // 1. BERSIHKAN TEKS DARI SEGALA MACAM SAMPAH
+      // Safari suka masukin huruf besar, titik, koma, spasi ganda, dll.
+      let cleanText = text.toLowerCase()
+        .replace(/\./g, '') // Buang semua titik (11.000 -> 11000)
+        .replace(/,/g, '')  // Buang semua koma
+        .replace(/rupiah/g, '') // Buang kata rupiah
+        .replace(/\s+/g, ' ') // Ganti spasi ganda jadi spasi tunggal
+        .trim();
+
+      // 2. KONVERSI HURUF ANGKA JADI NOMOR ASLI
       const wordsToDigits: Record<string, string> = {
         'nol': '0', 'satu': '1', 'dua': '2', 'tiga': '3', 'empat': '4',
         'lima': '5', 'enam': '6', 'tujuh': '7', 'delapan': '8', 'sembilan': '9',
@@ -255,52 +260,60 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
       };
 
       Object.entries(wordsToDigits).forEach(([word, digit]) => {
-         const regex = new RegExp(`\\b${word}\\b`, 'g');
-         processedTextForDigits = processedTextForDigits.replace(regex, digit);
+        const regex = new RegExp(`\\b${word}\\b`, 'g');
+        cleanText = cleanText.replace(regex, digit);
       });
+      cleanText = cleanText.replace(/belas/g, "1").replace(/puluh/g, "0");
 
-      // Special cases for "belas" and "puluh" if they still exist
-      processedTextForDigits = processedTextForDigits.replace(/belas/g, "1").replace(/puluh/g, "0");
-
+      // 3. JURUS PAMUNGKAS CARI ANGKA (Sangat Ampuh untuk iOS)
       let parsedAmount = 0;
-      const amountMatch = processedTextForDigits.match(/(\d+)\s*(ribu|juta)?/);
       
-      if (amountMatch) {
-        let num = parseInt(amountMatch[1]);
-        const unit = amountMatch[2];
-        if (unit === "ribu") num *= 1000;
-        else if (unit === "juta") num *= 1000000;
-        else if (num < 1000 && !txt.includes("rupiah")) {
-           // Heuristic: "dua puluh" -> 20.000 (often spoken in Indonesia)
-           num *= 1000;
-        }
+      // Cari angka yang diikuti kata 'ribu' atau 'juta' (Contoh: 11 ribu)
+      const ribuJutaMatch = cleanText.match(/(\d+)\s*(ribu|juta)/);
+      
+      if (ribuJutaMatch) {
+        let num = parseInt(ribuJutaMatch[1], 10);
+        if (ribuJutaMatch[2] === "ribu") num *= 1000;
+        if (ribuJutaMatch[2] === "juta") num *= 1000000;
         parsedAmount = num;
       } else {
-        const digits = processedTextForDigits.replace(/\D/g, "");
-        if (digits) {
-           parsedAmount = parseInt(digits);
-           if (parsedAmount < 1000 && !txt.includes("rupiah")) parsedAmount *= 1000;
+        // Cari SEMUA angka yang tersisa di dalam teks secara berurutan (Contoh: 11000)
+        const numberMatches = cleanText.match(/\d+/g);
+        
+        if (numberMatches) {
+          // Gabungkan semua deretan angka yang ditemukan (kalau terpisah spasi)
+          const combinedNumbers = numberMatches.join('');
+          parsedAmount = parseInt(combinedNumbers, 10);
+          
+          // Kalau angkanya di bawah 1000, anggap itu ribuan
+          if (parsedAmount > 0 && parsedAmount < 1000) {
+            parsedAmount *= 1000; 
+          }
         }
       }
 
-      // Parse category
-      let matchedCategory = "";
+      // 4. CARI KATEGORI DENGAN AMAN
+      let matchedCategory = displayCategories[0]?.name || "Lainnya"; 
       const categories = displayCategories.map(c => c.name.toLowerCase());
       
-      // Try to find exact match
-      const found = categories.find(c => txt.includes(c));
+      // Coba cocokkan kata di teks dengan nama kategori yang ada
+      const found = categories.find(c => cleanText.includes(c));
       if (found) {
-         matchedCategory = displayCategories.find(c => c.name.toLowerCase() === found)?.name || "";
+        matchedCategory = displayCategories.find(c => c.name.toLowerCase() === found)?.name || matchedCategory;
       } else {
-        if (txt.includes("makan") || txt.includes("minum") || txt.includes("kopi") || txt.includes("jajan")) {
-           matchedCategory = "Makan & Minum";
-        } else if (txt.includes("bensin") || txt.includes("parkir") || txt.includes("gojek") || txt.includes("grab")) {
-           matchedCategory = "Transportasi";
-        } else {
-           matchedCategory = displayCategories[0]?.name || "";
+        // Sinonim kategori sehari-hari
+        if (cleanText.includes("makan") || cleanText.includes("minum") || cleanText.includes("kopi") || cleanText.includes("jajan") || cleanText.includes("warteg")) {
+          matchedCategory = "Makan & Minum"; 
+        } else if (cleanText.includes("bensin") || cleanText.includes("parkir") || cleanText.includes("gojek") || cleanText.includes("grab") || cleanText.includes("tol")) {
+          matchedCategory = "Transportasi";
+        } else if (cleanText.includes("paket") || cleanText.includes("pulsa") || cleanText.includes("kuota") || cleanText.includes("internet")) {
+          // Fallback ke "Tagihan" atau kategori pertama jika tidak ketemu
+          const tagihanCat = displayCategories.find(c => c.name.includes("Tagihan") || c.name.includes("Lain"));
+          matchedCategory = tagihanCat?.name || displayCategories[0]?.name || "Lainnya";
         }
       }
 
+      // 5. SET HASIL AKHIR
       setParsedVoice({ amount: parsedAmount || 0, category: matchedCategory });
     };
 
