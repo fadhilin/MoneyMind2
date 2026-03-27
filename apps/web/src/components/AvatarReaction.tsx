@@ -38,7 +38,7 @@ const AvatarReaction: React.FC = () => {
           icon: "error",
           color: "text-rose-500",
           bg: "bg-rose-100 dark:bg-rose-900/30",
-          label: "Anjir boros banget kamu!",
+          label: "Heyyy boros banget kamu!",
           animation: "animate-shake",
           effect: "sweat",
         };
@@ -103,7 +103,7 @@ const AvatarReaction: React.FC = () => {
   const config = getAvatarConfig();
 
   return (
-    <div 
+    <div
       className="relative flex flex-col items-center cursor-pointer mt-6"
       onClick={() => setShowLabel(!showLabel)}
     >
@@ -231,7 +231,9 @@ const AvatarReaction: React.FC = () => {
         )}
       </div>
 
-      <div className={`mt-2 px-3 py-1 flex items-center justify-center text-center bg-white/80 dark:bg-white/5 backdrop-blur-sm rounded-full border border-slate-200 dark:border-white/10 transition-all duration-300 ${showLabel ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none"}`}>
+      <div
+        className={`mt-2 px-3 py-1 flex items-center justify-center text-center bg-white/80 dark:bg-white/5 backdrop-blur-sm rounded-full border border-slate-200 dark:border-white/10 transition-all duration-300 ${showLabel ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none"}`}
+      >
         <p className="text-[10px] font-bold uppercase tracking-tighter text-slate-500 dark:text-slate-400 text-center">
           {config.label}
         </p>
