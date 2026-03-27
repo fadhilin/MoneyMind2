@@ -50,6 +50,7 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
   const [parsedVoice, setParsedVoice] = useState<{ amount: number; category: string } | null>(null);
   const [isEditingVoiceCategory, setIsEditingVoiceCategory] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const latestTranscriptRef = useRef<string>("");
 
   const resetForm = () => {
     setActiveTab("numpad");
@@ -174,6 +175,9 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
     recognition.interimResults = true;
     recognitionRef.current = recognition;
 
+    // Reset memori cadangan setiap kali mulai merekam
+    latestTranscriptRef.current = "";
+
     recognition.onstart = () => {
       setIsRecording(true);
       setVoiceResult("Mendengarkan...");
@@ -181,22 +185,11 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
       setIsEditingVoiceCategory(false);
     };
 
-    recognition.onaudiostart = () => {
-      setVoiceResult("Mulai merekam audio...");
-    };
-
-    recognition.onsoundstart = () => {
-      setVoiceResult("Mendeteksi suara...");
-    };
-
-    recognition.onspeechstart = () => {
-      setVoiceResult("Mendeteksi ucapan...");
-    };
-
-    recognition.onspeechend = () => {
-      setVoiceResult("Berhenti bicara, memproses...");
-    };
-
+    recognition.onaudiostart = () => setVoiceResult("Mulai merekam audio...");
+    recognition.onsoundstart = () => setVoiceResult("Mendeteksi suara...");
+    recognition.onspeechstart = () => setVoiceResult("Mendeteksi ucapan...");
+    recognition.onspeechend = () => setVoiceResult("Berhenti bicara, memproses...");
+    
     recognition.onnomatch = () => {
       setVoiceResult("Suara tidak dapat dikenali.");
       setIsRecording(false);
@@ -204,15 +197,25 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
 
     recognition.onresult = (event: any) => {
       let currentTranscript = "";
+      let isFinalFound = false;
+
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
+        currentTranscript += transcript;
         if (event.results[i].isFinal) {
-          setVoiceResult(transcript);
-          parseVoiceCommand(transcript);
-        } else {
-          currentTranscript += transcript;
-          setVoiceResult(currentTranscript + "...");
+          isFinalFound = true;
         }
+      }
+
+      // SIMPAN KE REF AGAR TIDAK HILANG/KOSONG SAAT ONEND DIPANGGIL
+      latestTranscriptRef.current = currentTranscript;
+
+      if (isFinalFound) {
+        setVoiceResult(currentTranscript);
+        parseVoiceCommand(currentTranscript);
+      } else {
+        // Tampilkan teks sementara di layar
+        setVoiceResult(currentTranscript + "...");
       }
     };
 
@@ -223,9 +226,12 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
 
     recognition.onend = () => {
       setIsRecording(false);
-      // Fallback: if no final result was captured, try parsing the current result
-      if (voiceResult && (!parsedVoice || parsedVoice.amount === 0)) {
-         parseVoiceCommand(voiceResult);
+      
+      // JURUS PAMUNGKAS SAFARI:
+      // Safari sering memutus mic tanpa isFinal. Jadi saat onend, 
+      // kita paksa eksekusi dari memori cadangan (Ref).
+      if (latestTranscriptRef.current) {
+        parseVoiceCommand(latestTranscriptRef.current);
       }
     };
 
