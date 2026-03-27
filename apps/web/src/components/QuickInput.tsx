@@ -223,6 +223,10 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
 
     recognition.onend = () => {
       setIsRecording(false);
+      // Fallback: if no final result was captured, try parsing the current result
+      if (voiceResult && (!parsedVoice || parsedVoice.amount === 0)) {
+         parseVoiceCommand(voiceResult);
+      }
     };
 
     recognition.start();
@@ -234,51 +238,70 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
     }
   };
 
-  const parseVoiceCommand = (text: string) => {
-    const txt = text.toLowerCase();
+    const parseVoiceCommand = (text: string) => {
+      const txt = text.toLowerCase();
+      // Cleanup text for better parsing: "dua puluh ribu" 
+      // Replace words with numbers
+      const wordsToDigits: Record<string, string> = {
+        'nol': '0', 'satu': '1', 'dua': '2', 'tiga': '3', 'empat': '4',
+        'lima': '5', 'enam': '6', 'tujuh': '7', 'delapan': '8', 'sembilan': '9',
+        'sepuluh': '10', 'sebelas': '11', 'dua belas': '12', 'tiga belas': '13',
+        'empat belas': '14', 'lima belas': '15', 'enam belas': '16', 'tujuh belas': '17',
+        'delapan belas': '18', 'sembilan belas': '19', 'dua puluh': '20',
+        'tiga puluh': '30', 'empat puluh': '40', 'lima puluh': '50',
+        'enam puluh': '60', 'tujuh puluh': '70', 'delapan puluh': '80', 'sembilan puluh': '90'
+      };
 
-    // Parse amount using simple regex matching numbers
-    let parsedAmount = 0;
-     // Handle words to numbers for simple cases (ribu/juta)
-    const processedText = txt
-      .replace(/satu/g, "1").replace(/dua/g, "2").replace(/tiga/g, "3")
-      .replace(/empat/g, "4").replace(/lima/g, "5").replace(/enam/g, "6")
-      .replace(/tujuh/g, "7").replace(/delapan/g, "8").replace(/sembilan/g, "9")
-      .replace(/puluh/g, "0").replace(/belas/g, "1"); // naive fallback
+      let processedText = txt;
+      Object.entries(wordsToDigits).forEach(([word, digit]) => {
+         const regex = new RegExp(`\\b${word}\\b`, 'g');
+         processedText = processedText.replace(regex, digit);
+      });
 
-    const amountMatch = processedText.match(/(\d+)\s*(ribu|juta)?/);
-    if (amountMatch) {
-      let num = parseInt(amountMatch[1]);
-      if (amountMatch[2] === "ribu") num *= 1000;
-      if (amountMatch[2] === "juta") num *= 1000000;
-      parsedAmount = num;
-    } else {
-        // Just extract the first sequence of digits
+      // Special cases for "belas" and "puluh" if they still exist
+      processedText = processedText.replace(/belas/g, "1").replace(/puluh/g, "0");
+
+      let parsedAmount = 0;
+      const amountMatch = processedText.match(/(\d+)\s*(ribu|juta)?/);
+      
+      if (amountMatch) {
+        let num = parseInt(amountMatch[1]);
+        const unit = amountMatch[2];
+        if (unit === "ribu") num *= 1000;
+        else if (unit === "juta") num *= 1000000;
+        else if (num < 1000 && !txt.includes("rupiah")) {
+           // Heuristic: "dua puluh" -> 20.000 (often spoken in Indonesia)
+           num *= 1000;
+        }
+        parsedAmount = num;
+      } else {
         const digits = txt.replace(/\D/g, "");
-        if (digits) parsedAmount = parseInt(digits);
-    }
-    
-    // Quick heuristic: assume user means 20k if they say "dua puluh" without ribu if amount < 1000
-    if (parsedAmount > 0 && parsedAmount < 1000 && (txt.includes("ribu") || txt.includes("ribu"))) {
-        parsedAmount *= 1000;
-    } else if (parsedAmount > 0 && parsedAmount < 100 && !txt.includes("ribu") && !txt.includes("rupiah")) {
-         // Sangat mungkin "lima puluh" artinya 50.000
-        parsedAmount *= 1000;
-    }
+        if (digits) {
+           parsedAmount = parseInt(digits);
+           if (parsedAmount < 1000 && !txt.includes("rupiah")) parsedAmount *= 1000;
+        }
+      }
 
-    // Parse category by finding keywords
-    let matchedCategory = "";
-    if (txt.includes("makan") || txt.includes("minum") || txt.includes("kopi") || txt.includes("jajan") || txt.includes("sarapan")) {
-       matchedCategory = "Makan & Minum";
-    } else if (txt.includes("bensin") || txt.includes("parkir") || txt.includes("tol") || txt.includes("gojek") || txt.includes("grab")) {
-       matchedCategory = "Transportasi";
-    } else {
-       // fallback, get first budget category or something
-       matchedCategory = displayCategories[0]?.name || "";
-    }
+      // Parse category
+      let matchedCategory = "";
+      const categories = displayCategories.map(c => c.name.toLowerCase());
+      
+      // Try to find exact match
+      const found = categories.find(c => txt.includes(c));
+      if (found) {
+         matchedCategory = displayCategories.find(c => c.name.toLowerCase() === found)?.name || "";
+      } else {
+        if (txt.includes("makan") || txt.includes("minum") || txt.includes("kopi") || txt.includes("jajan")) {
+           matchedCategory = "Makan & Minum";
+        } else if (txt.includes("bensin") || txt.includes("parkir") || txt.includes("gojek") || txt.includes("grab")) {
+           matchedCategory = "Transportasi";
+        } else {
+           matchedCategory = displayCategories[0]?.name || "";
+        }
+      }
 
-    setParsedVoice({ amount: parsedAmount || 0, category: matchedCategory });
-  };
+      setParsedVoice({ amount: parsedAmount || 0, category: matchedCategory });
+    };
 
 
   return (
