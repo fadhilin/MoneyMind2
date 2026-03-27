@@ -475,7 +475,7 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
             <div className="p-6 flex flex-col h-full items-center justify-center">
                 <div className="text-center mb-8">
                      <h2 className="text-2xl font-black mb-2">Input Suara</h2>
-                     <p className="text-slate-500 text-sm">Sebutkan nominal dan kategori.<br/>Contoh: "Makan siang lima belas ribu"</p>
+                     <p className="text-slate-500 text-sm">Ketuk tombol lalu sebutkan nominal dan kategori.<br/>Contoh: "Makan siang lima belas ribu"</p>
                 </div>
 
                 <div className="relative mb-12 flex items-center justify-center">
@@ -483,11 +483,15 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
                         <div className="absolute inset-0 bg-rose-500/20 rounded-full scale-150 animate-ping"></div>
                     )}
                     <button
-                        onMouseDown={startRecording}
-                        onMouseUp={stopRecording}
-                        onTouchStart={startRecording}
-                        onTouchEnd={stopRecording}
-                        className={`relative z-10 size-32 rounded-full flex items-center justify-center transition-all ${isRecording ? 'bg-rose-500 text-white scale-95 shadow-inner' : 'bg-primary text-white shadow-xl hover:scale-105'}`}
+                        onClick={(e) => {
+                           e.preventDefault();
+                           if (isRecording) {
+                               stopRecording();
+                           } else {
+                               startRecording();
+                           }
+                        }}
+                        className={`relative z-10 size-32 rounded-full flex items-center justify-center transition-all ${isRecording ? 'bg-rose-500 text-white scale-95 shadow-inner animate-pulse' : 'bg-primary text-white shadow-xl hover:scale-105'}`}
                     >
                         <span className="material-symbols-outlined text-6xl">mic</span>
                     </button>
@@ -495,7 +499,7 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
 
                 <div className="w-full min-h-24 bg-slate-50 dark:bg-white/5 rounded-2xl p-4 flex flex-col items-center justify-center border border-slate-200 dark:border-white/10 mb-4 transition-all">
                     <p className={`text-center italic ${isRecording ? 'text-primary' : 'text-slate-500'}`}>
-                        {voiceResult || "Tahan tombol dan mulai bicara..."}
+                        {voiceResult || "Ketuk mikrofon untuk mulai bicara..."}
                     </p>
                 </div>
 
