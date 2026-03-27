@@ -240,8 +240,10 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
 
     const parseVoiceCommand = (text: string) => {
       const txt = text.toLowerCase();
-      // Cleanup text for better parsing: "dua puluh ribu" 
-      // Replace words with numbers
+      // CLEANUP: Safari on iOS adds dots to numbers like "11.000".
+      // We strip dots and commas BEFORE parsing digits.
+      let processedTextForDigits = txt.replace(/\./g, "").replace(/,/g, "");
+      
       const wordsToDigits: Record<string, string> = {
         'nol': '0', 'satu': '1', 'dua': '2', 'tiga': '3', 'empat': '4',
         'lima': '5', 'enam': '6', 'tujuh': '7', 'delapan': '8', 'sembilan': '9',
@@ -252,17 +254,16 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
         'enam puluh': '60', 'tujuh puluh': '70', 'delapan puluh': '80', 'sembilan puluh': '90'
       };
 
-      let processedText = txt;
       Object.entries(wordsToDigits).forEach(([word, digit]) => {
          const regex = new RegExp(`\\b${word}\\b`, 'g');
-         processedText = processedText.replace(regex, digit);
+         processedTextForDigits = processedTextForDigits.replace(regex, digit);
       });
 
       // Special cases for "belas" and "puluh" if they still exist
-      processedText = processedText.replace(/belas/g, "1").replace(/puluh/g, "0");
+      processedTextForDigits = processedTextForDigits.replace(/belas/g, "1").replace(/puluh/g, "0");
 
       let parsedAmount = 0;
-      const amountMatch = processedText.match(/(\d+)\s*(ribu|juta)?/);
+      const amountMatch = processedTextForDigits.match(/(\d+)\s*(ribu|juta)?/);
       
       if (amountMatch) {
         let num = parseInt(amountMatch[1]);
@@ -275,7 +276,7 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
         }
         parsedAmount = num;
       } else {
-        const digits = txt.replace(/\D/g, "");
+        const digits = processedTextForDigits.replace(/\D/g, "");
         if (digits) {
            parsedAmount = parseInt(digits);
            if (parsedAmount < 1000 && !txt.includes("rupiah")) parsedAmount *= 1000;
