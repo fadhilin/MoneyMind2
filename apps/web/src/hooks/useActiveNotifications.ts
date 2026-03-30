@@ -199,7 +199,7 @@ export function useActiveNotifications() {
           message: r.amount
             ? `Siapkan Rp ${r.amount.toLocaleString('id-ID')} untuk ${r.name} pada tanggal ${r.dayOfMonth} nanti.`
             : `Jangan lupa ${r.name} pada tanggal ${r.dayOfMonth} nanti.`,
-          time: now,
+          time: now,  
         });
       }
     }
