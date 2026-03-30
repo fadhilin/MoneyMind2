@@ -20,13 +20,13 @@ const Dashboard: React.FC = () => {
       <TransaksiInput isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
       <OnboardingGuide />
 
-      {/* Quick Input Action Button */}
+      {/* Action Button Khusus Desktop/Tab (hidden on mobile) */}
       <button
         onClick={() => window.dispatchEvent(new Event("open-quick-input"))}
-        className="fixed bottom-20 right-4 md:bottom-8 md:right-8 z-40 bg-emerald-500 text-white size-16 rounded-full shadow-xl shadow-emerald-500/30 hover:scale-110 hover:-translate-y-1 active:scale-95 transition-all flex items-center justify-center group ring-4 ring-white dark:ring-[#151121]"
+        className="fixed bottom-8 right-8 z-40 bg-rose-500 text-white size-16 rounded-full shadow-xl shadow-rose-500/30 hover:scale-110 hover:-translate-y-1 active:scale-95 transition-all lg:flex items-center justify-center group ring-4 ring-white dark:ring-[#151121] hidden"
         aria-label="Catat Pengeluaran Cepat"
       >
-        <span className="material-symbols-outlined text-3xl group-hover:animate-pulse">bolt</span>
+        <span className="material-symbols-outlined text-3xl group-hover:animate-pulse">remove</span>
       </button>
     </div>
   );

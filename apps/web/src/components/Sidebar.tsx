@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import ReminderPanel from "./ReminderPanel";
 
 interface SidebarProps {
   darkMode: boolean;
@@ -14,6 +15,7 @@ const Sidebar = ({ darkMode, isOpen, onClose, onOpenModal }: SidebarProps) => {
   const [touchCurrentX, setTouchCurrentX] = useState<number | null>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
+  const [isReminderOpen, setIsReminderOpen] = useState(false);
 
   // Handle Swipe Gesture for Mobile
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -86,6 +88,15 @@ const Sidebar = ({ darkMode, isOpen, onClose, onOpenModal }: SidebarProps) => {
     `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=7F5AF0&color=fff&length=2`;
 
   return (
+    <>
+    {/* Overlay/Backdrop for Mobile */}
+    {isOpen && (
+      <div 
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden transition-opacity"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+    )}
     <aside
       ref={sidebarRef}
       onTouchStart={handleTouchStart}
@@ -155,6 +166,17 @@ const Sidebar = ({ darkMode, isOpen, onClose, onOpenModal }: SidebarProps) => {
             <span className="material-symbols-outlined text-[22px]">add</span>
             <span className="text-sm font-medium">Catat Pemasukan</span>
           </button>
+
+          <button
+            onClick={() => {
+              setIsReminderOpen(true);
+              if (window.innerWidth < 1024) onClose?.();
+            }}
+            className={linkClass({ isActive: false })}
+          >
+            <span className="material-symbols-outlined text-[22px]">alarm</span>
+            <span className="text-sm font-medium">Pengingat</span>
+          </button>
         </nav>
       </div>
 
@@ -191,6 +213,8 @@ const Sidebar = ({ darkMode, isOpen, onClose, onOpenModal }: SidebarProps) => {
         </div>
       </div>
     </aside>
+    <ReminderPanel isOpen={isReminderOpen} onClose={() => setIsReminderOpen(false)} />
+    </>
   );
 };
 

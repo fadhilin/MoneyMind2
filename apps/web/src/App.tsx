@@ -21,6 +21,7 @@ import Reports from "./pages/Reports";
 import ProfileSetup from "./pages/ProfileSetup";
 import Settings from "./pages/Settings";
 import { Preferences } from "@capacitor/preferences";
+import { LocalNotifications } from "@capacitor/local-notifications";
 
 // ─── Type Definitions ────────────────────────────────────────────────────────
 declare const __APP_VERSION__: string;
@@ -30,11 +31,39 @@ const Layout = ({ darkMode }: { darkMode: boolean }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isQuickInputOpen, setIsQuickInputOpen] = useState(false);
+  const [reminderPopup, setReminderPopup] = useState<{name: string; amount?: number}[] | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Check reminders on startup
+  useEffect(() => {
+    const alreadyShown = sessionStorage.getItem('reminder_popup_shown');
+    if (alreadyShown) return;
+    
+    Preferences.get({ key: 'payment_reminders' }).then(({ value }) => {
+      if (!value) return;
+      const reminders = JSON.parse(value);
+      const today = new Date().getDate();
+      const dueToday = reminders.filter((r: { dayOfMonth: number; enabled: boolean }) => r.enabled && r.dayOfMonth === today);
+      if (dueToday.length > 0) {
+        setReminderPopup(dueToday);
+        sessionStorage.setItem('reminder_popup_shown', 'true');
+      }
+    });
+
+    // Request native notification permissions safely
+    if (typeof LocalNotifications !== 'undefined' && LocalNotifications.checkPermissions) {
+      LocalNotifications.checkPermissions().then((perms) => {
+        if (perms.display !== 'granted') {
+          LocalNotifications.requestPermissions();
+        }
+      }).catch(err => console.warn('Notification permission check failed:', err));
+    }
+  }, []);
+
   useEffect(() => {
     if (location.pathname === "/quick") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsQuickInputOpen(true);
       navigate("/dashboard", { replace: true });
     }
@@ -42,8 +71,13 @@ const Layout = ({ darkMode }: { darkMode: boolean }) => {
 
   useEffect(() => {
     const handleOpenQuick = () => setIsQuickInputOpen(true);
+    const handleOpenIncome = () => setIsModalOpen(true);
     window.addEventListener("open-quick-input", handleOpenQuick);
-    return () => window.removeEventListener("open-quick-input", handleOpenQuick);
+    window.addEventListener("open-income-modal", handleOpenIncome);
+    return () => {
+      window.removeEventListener("open-quick-input", handleOpenQuick);
+      window.removeEventListener("open-income-modal", handleOpenIncome);
+    };
   }, []);
 
   return (
@@ -64,7 +98,7 @@ const Layout = ({ darkMode }: { darkMode: boolean }) => {
           isSidebarOpen={sidebarOpen}
           onMenuClick={() => setSidebarOpen(true)}
         />
-        <div className="mt-4">
+        <div className="mt-4 pb-20 lg:pb-4">
           <Outlet />
         </div>
       </main>
@@ -78,6 +112,80 @@ const Layout = ({ darkMode }: { darkMode: boolean }) => {
         isOpen={isQuickInputOpen}
         onClose={() => setIsQuickInputOpen(false)}
       />
+
+      {/* Mobile Quick Footer */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden">
+        <div className="bg-white/80 dark:bg-[#110e1c]/80 backdrop-blur-xl border-t border-slate-200 dark:border-white/10 shadow-2xl shadow-black/20">
+          <div className="flex items-center justify-around px-2 py-1 pb-[calc(0.25rem+env(safe-area-inset-bottom))]">
+            {/* Catat Pengeluaran */}
+            <button
+              onClick={() => setIsQuickInputOpen(true)}
+              className="flex flex-col items-center gap-0.5 py-2 px-4 rounded-2xl text-rose-500 hover:bg-rose-500/10 active:scale-95 transition-all group min-w-[72px]"
+            >
+              <span className="material-symbols-outlined text-2xl group-hover:scale-110 transition-transform">remove_circle</span>
+              <span className="text-[9px] font-bold tracking-tight">Pengeluaran</span>
+            </button>
+
+            {/* Home */}
+            <button
+              onClick={() => navigate("/dashboard")}
+              className="flex flex-col items-center gap-0.5 py-2 px-4 rounded-2xl text-primary hover:bg-primary/10 active:scale-95 transition-all group min-w-[72px] relative"
+            >
+              <div className="absolute -top-5 bg-primary text-white size-12 rounded-full flex items-center justify-center shadow-lg shadow-primary/30 group-hover:scale-110 transition-transform ring-4 ring-white dark:ring-[#110e1c]">
+                <span className="material-symbols-outlined text-2xl">home</span>
+              </div>
+              <span className="text-[9px] font-bold tracking-tight mt-7">Beranda</span>
+            </button>
+
+            {/* Catat Pemasukan */}
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex flex-col items-center gap-0.5 py-2 px-4 rounded-2xl text-emerald-500 hover:bg-emerald-500/10 active:scale-95 transition-all group min-w-[72px]"
+            >
+              <span className="material-symbols-outlined text-2xl group-hover:scale-110 transition-transform">add_circle</span>
+              <span className="text-[9px] font-bold tracking-tight">Pemasukan</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Reminder Popup */}
+      {reminderPopup && reminderPopup.length > 0 && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white dark:bg-[#151121] rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-amber-500/30 animate-in zoom-in-95">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 bg-amber-500/10 rounded-xl">
+                <span className="material-symbols-outlined text-amber-500 text-3xl">alarm</span>
+              </div>
+              <div>
+                <h3 className="font-bold text-lg text-black dark:text-white">Pengingat Hari Ini</h3>
+                <p className="text-xs text-slate-500">Ada pembayaran yang jatuh tempo</p>
+              </div>
+            </div>
+            
+            <div className="space-y-2 mb-6">
+              {reminderPopup.map((r, i) => (
+                <div key={i} className="flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-500/10 rounded-xl border border-amber-200 dark:border-amber-500/20">
+                  <span className="material-symbols-outlined text-amber-500">event_upcoming</span>
+                  <div className="flex-1">
+                    <p className="font-bold text-sm text-black dark:text-white">{r.name}</p>
+                    {r.amount && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 font-bold">Rp {r.amount.toLocaleString('id-ID')}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <button
+              onClick={() => setReminderPopup(null)}
+              className="w-full py-3 bg-amber-500 text-white font-bold rounded-xl shadow-lg hover:brightness-110 active:scale-95 transition-all"
+            >
+              OK, Mengerti
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

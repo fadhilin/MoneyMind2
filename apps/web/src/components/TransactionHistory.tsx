@@ -2,7 +2,8 @@ import { NavLink } from "react-router-dom";
 import { useTransactions } from "../hooks/useTransactions";
 
 const TransactionHistory = () => {
-  const { data } = useTransactions({}); // No date filter for general history
+  const todayDate = new Date().toLocaleDateString("en-CA");
+  const { data } = useTransactions({ date: todayDate });
   const transactions = data?.data ?? [];
   const recentTransactions = transactions.slice(0, 10);
 
@@ -11,10 +12,10 @@ const TransactionHistory = () => {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h3 className="text-xl font-bold text-black dark:text-white">
-            Transaksi Terakhir
+            Transaksi Hari Ini
           </h3>
           <p className="text-xs text-slate-500 mt-1 tracking-wider">
-            Aktivitas Terbaru
+            {new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" })}
           </p>
         </div>
         <NavLink

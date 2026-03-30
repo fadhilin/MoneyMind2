@@ -150,8 +150,21 @@ export async function computeMonthlySummary(
 
   const dailyExpenses = Array.from(dailyMap.entries()).map(([date, amount]) => ({ date, amount })).sort((a,b) => a.date.localeCompare(b.date));
 
-  // Safety Spend = max(0, balance - 10% of real income)
-  const safetySpend = Math.max(0, totalBalance - Math.round(realIncome * 0.1));
+  // Safety Spend = sisa uang bulan ini / sisa hari di bulan ini
+  const now = new Date();
+  const targetDate = month ? new Date(`${month}-01`) : now;
+  const totalDaysInMonth = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0).getDate();
+  const isCurrentMonth = targetDate.getFullYear() === now.getFullYear() && targetDate.getMonth() === now.getMonth();
+  const isFutureMonth = targetDate > now;
+  
+  let daysRemaining = 1;
+  if (isCurrentMonth) {
+    daysRemaining = Math.max(1, totalDaysInMonth - now.getDate() + 1);
+  } else if (isFutureMonth) {
+    daysRemaining = totalDaysInMonth;
+  }
+  
+  const safetySpend = Math.max(0, Math.floor(totalBalance / daysRemaining));
 
   // --- Calculate Baseline History up to PREVIOUS DAY ---
   // If the user selected a specific date, baseline is up to date - 1.

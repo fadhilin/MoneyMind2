@@ -63,10 +63,19 @@ export function useActiveNotifications() {
   };
 
   const now = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+  const todayDay = new Date().getDate();
 
-
+  // Load reminders for notifications
+  const [reminders, setRemindersState] = useState<{id: string; name: string; dayOfMonth: number; amount?: number; icon: string; enabled: boolean}[]>([]);
+  useEffect(() => {
+    Preferences.get({ key: 'payment_reminders' }).then(({ value }) => {
+      if (value) setRemindersState(JSON.parse(value));
+    });
+  }, []);
 
   const notifications: Notification[] = [];
+
+
   const monthlyIncome = monthSummary?.realIncome ?? 0;
   const monthlyExpense = monthSummary?.adjustedExpense ?? 0;
   const currentBalance = monthlyIncome - monthlyExpense;
@@ -162,6 +171,37 @@ export function useActiveNotifications() {
         message: `Sudah ${pct.toFixed(0)}% dari target. Tinggal Rp ${(s.target - s.current).toLocaleString('id-ID')} lagi!`,
         time: now,
       });
+    }
+  });
+
+  // Reminder notifications
+  reminders.filter(r => r.enabled).forEach((r) => {
+    if (r.dayOfMonth === todayDay) {
+      notifications.push({
+        id: `reminder-today-${r.id}`,
+        type: 'warning',
+        icon: r.icon || 'alarm',
+        title: `⏰ Jatuh Tempo: ${r.name}`,
+        message: r.amount
+          ? `Hari ini waktunya bayar ${r.name} sebesar Rp ${r.amount.toLocaleString('id-ID')}.`
+          : `Hari ini waktunya bayar ${r.name}. Jangan lupa!`,
+        time: now,
+      });
+    } else {
+      // Upcoming: within 2 days
+      const daysUntil = r.dayOfMonth > todayDay ? r.dayOfMonth - todayDay : (r.dayOfMonth + 30 - todayDay);
+      if (daysUntil <= 2 && daysUntil > 0) {
+        notifications.push({
+          id: `reminder-soon-${r.id}`,
+          type: 'info',
+          icon: 'event_upcoming',
+          title: `${r.name} dalam ${daysUntil} hari`,
+          message: r.amount
+            ? `Siapkan Rp ${r.amount.toLocaleString('id-ID')} untuk ${r.name} pada tanggal ${r.dayOfMonth} nanti.`
+            : `Jangan lupa ${r.name} pada tanggal ${r.dayOfMonth} nanti.`,
+          time: now,
+        });
+      }
     }
   });
 

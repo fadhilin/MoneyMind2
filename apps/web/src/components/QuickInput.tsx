@@ -33,7 +33,8 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
   const type: TransactionType = "expense";
   const [amountStr, setAmountStr] = useState<string>("0");
   const [category, setCategory] = useState<string>("");
-  const [step, setStep] = useState<"amount" | "category">("amount");
+  const [step, setStep] = useState<"amount" | "category" | "name">("amount");
+  const [expenseName, setExpenseName] = useState<string>("");
 
   // New Category State
   const [isAddingNewCategory, setIsAddingNewCategory] = useState(false);
@@ -57,6 +58,7 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
     setStep("amount");
     setAmountStr("0");
     setCategory("");
+    setExpenseName("");
     setIsAddingTemplate(false);
     setIsAddingNewCategory(false);
     setNewCatName("");
@@ -113,7 +115,7 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
         category: txCategory,
         icon: txIcon,
         date: globalDate,
-        note: txNote || "Quick Input",
+        note: txNote || txCategory,
       },
       {
         onSuccess: () => {
@@ -387,7 +389,7 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
                     </button>
                   </div>
                 </>
-              ) : (
+              ) : step === "category" ? (
                 <div className="p-6 flex flex-col h-full animate-in fade-in slide-in-from-right-4">
                   <div className="flex items-center justify-between mb-6">
                     <button onClick={() => setStep("amount")} className="text-slate-500 p-2 -ml-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-full">
@@ -406,10 +408,11 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
                            if (isAddingTemplate) {
                               setCategory(cat.name);
                            } else {
-                              handleSaveTransaction(parseInt(amountStr), type, cat.name, cat.icon);
+                              setCategory(cat.name);
+                              setStep("name");
                            }
                         }}
-                        className={`flex flex-col items-center gap-2 group transition-all p-2 rounded-2xl ${isAddingTemplate && category === cat.name ? "bg-primary/10 ring-2 ring-primary" : "hover:bg-slate-50 dark:hover:bg-white/5"}`}
+                        className={`flex flex-col items-center gap-2 group transition-all p-2 rounded-2xl ${(isAddingTemplate && category === cat.name) || (!isAddingTemplate && category === cat.name) ? "bg-primary/10 ring-2 ring-primary" : "hover:bg-slate-50 dark:hover:bg-white/5"}`}
                       >
                         <div className="size-14 rounded-2xl border-2 bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 flex items-center justify-center group-hover:border-primary group-hover:text-primary transition-all">
                           <span className="material-symbols-outlined text-3xl">{cat.icon}</span>
@@ -496,6 +499,49 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
                     )}
                   </div>
                   )}
+                </div>
+              ) : (
+                /* Step: Name - Beri nama pengeluaran */
+                <div className="p-6 flex flex-col h-full animate-in fade-in slide-in-from-right-4">
+                  <div className="flex items-center justify-between mb-6">
+                    <button onClick={() => setStep("category")} className="text-slate-500 p-2 -ml-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-full">
+                       <span className="material-symbols-outlined">arrow_back</span>
+                    </button>
+                    <div className="text-right">
+                      <div className="text-xl font-black text-primary">Rp {formatCurrencyInput(amountStr)}</div>
+                      <div className="text-xs text-slate-500 font-bold">{category}</div>
+                    </div>
+                  </div>
+                  
+                  <h3 className="text-sm font-bold text-slate-500 mb-4 uppercase tracking-wider">Nama Pengeluaran</h3>
+                  
+                  <div className="flex-1 flex flex-col gap-4">
+                    <input
+                      value={expenseName}
+                      onChange={e => setExpenseName(e.target.value)}
+                      placeholder="Contoh: Ayam Geprek, Bensin Motor..."
+                      className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-lg font-bold focus:border-primary outline-hidden transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 text-black dark:text-white"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && expenseName.trim()) {
+                          const catData = displayCategories.find((c) => c.name === category);
+                          handleSaveTransaction(parseInt(amountStr), type, category, catData?.icon || "payments", expenseName.trim());
+                        }
+                      }}
+                    />
+                    <p className="text-xs text-slate-400 italic px-1">Tulis nama pengeluaranmu agar mudah diingat di riwayat</p>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      const catData = displayCategories.find((c) => c.name === category);
+                      handleSaveTransaction(parseInt(amountStr), type, category, catData?.icon || "payments", expenseName.trim() || category);
+                    }}
+                    className="w-full py-4 bg-primary text-white font-bold rounded-2xl shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 text-lg mt-4"
+                  >
+                    <span className="material-symbols-outlined">check</span>
+                    Simpan Pengeluaran
+                  </button>
                 </div>
               )}
             </div>
@@ -625,7 +671,11 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
                         )}
 
                         <button 
-                            onClick={() => handleSaveTransaction(parsedVoice.amount, "expense", parsedVoice.category, displayCategories.find(c => c.name === parsedVoice.category)?.icon || "category", voiceResult)}
+                            onClick={() => {
+                              // Bersihkan trailing "..." dari voice result sebelum simpan
+                              const cleanNote = voiceResult.replace(/\.{2,}$/g, '').trim();
+                              handleSaveTransaction(parsedVoice.amount, "expense", parsedVoice.category, displayCategories.find(c => c.name === parsedVoice.category)?.icon || "category", cleanNote);
+                            }}
                             className="w-full py-3 bg-emerald-500 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-600 active:scale-95 transition-all"
                         >
                             Simpan Sekarang

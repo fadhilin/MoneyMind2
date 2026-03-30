@@ -2,6 +2,7 @@ import { useState, useRef, type Dispatch, type SetStateAction } from 'react';
 import { signOut } from '../lib/auth-client';
 import { useSettings, useUpdateSettings } from '../hooks/useSettings';
 import { Preferences } from '@capacitor/preferences';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import { useAuth } from '../hooks/useAuth';
 import { db } from '../lib/db';
 
@@ -35,6 +36,20 @@ const Settings = ({ darkMode, setDarkMode }: SettingsProps) => {
   const handleLogout = async () => {
     await Preferences.remove({ key: 'globalDate' });
     await Preferences.remove({ key: 'has_profile' });
+    await Preferences.remove({ key: 'payment_reminders' });
+    
+    // Clear pending notifications safely
+    if (typeof LocalNotifications !== 'undefined' && LocalNotifications.getPending) {
+        try {
+            const pending = await LocalNotifications.getPending();
+            if (pending.notifications.length > 0) {
+                await LocalNotifications.cancel(pending);
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+    
     await signOut();
   };
 

@@ -12,8 +12,29 @@ export async function getBudgetDistribution(userId: string, month: string, date?
   const budgetsWithSpent = await getBudgets(userId, month, date, startDate, endDate);
   const summary = await computeMonthlySummary(userId, month, date, startDate, endDate);
 
+  // Merge budgets with same category name (dedup)
+  const mergedMap = new Map<string, { id: string; category: string; icon: string; color: string; limitAmount: number; spent: number }>();
+  for (const b of budgetsWithSpent) {
+    const key = b.category.toLowerCase();
+    const existing = mergedMap.get(key);
+    if (existing) {
+      existing.limitAmount += b.limitAmount;
+      existing.spent += b.spent;
+    } else {
+      mergedMap.set(key, {
+        id: b.id,
+        category: b.category,
+        icon: b.icon,
+        color: b.color,
+        limitAmount: b.limitAmount,
+        spent: b.spent,
+      });
+    }
+  }
+  const mergedBudgets = Array.from(mergedMap.values());
+
   return {
-    budgets: budgetsWithSpent.map((b) => ({
+    budgets: mergedBudgets.map((b) => ({
       id: b.id,
       category: b.category,
       icon: b.icon,
@@ -23,8 +44,8 @@ export async function getBudgetDistribution(userId: string, month: string, date?
       percentage: b.limitAmount > 0 ? Math.round((b.spent / b.limitAmount) * 100) : 0,
     })),
     totals: {
-      totalBudgetLimit: budgetsWithSpent.reduce((sum, b) => sum + b.limitAmount, 0),
-      totalBudgetSpent: budgetsWithSpent.reduce((sum, b) => sum + b.spent, 0),
+      totalBudgetLimit: mergedBudgets.reduce((sum, b) => sum + b.limitAmount, 0),
+      totalBudgetSpent: mergedBudgets.reduce((sum, b) => sum + b.spent, 0),
     },
     summary,
   };

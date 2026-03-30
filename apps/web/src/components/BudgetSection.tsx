@@ -5,7 +5,8 @@ import { useGlobalDate } from '../hooks/useGlobalDate';
 const BudgetSection = () => {
   const [globalDate] = useGlobalDate();
   const month = globalDate.slice(0, 7);
-  const { data: budgets = [] } = useBudgets(month);
+  const todayDate = new Date().toLocaleDateString("en-CA");
+  const { data: budgets = [] } = useBudgets(month, todayDate);
 
   const displayBudgets = [...budgets].sort((a, b) => {
     const isMakan = (c: string) =>
