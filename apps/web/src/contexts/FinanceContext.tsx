@@ -201,8 +201,8 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   const totalBudgetSpent = budgetsWithSpent.reduce((acc, b) => acc + b.spent, 0);
   const totalBudgetLimit = budgetsWithSpent.reduce((acc, b) => acc + b.limit, 0);
   
-  // Formula: Safety Spend = Sisa Uang (Balance) - Target Tabungan
-  const safetySpend = Math.max(0, totalBalance - (realIncome * 0.1));
+  // Formula: Safety Spend = Sisa Uang (Balance) dibagi 30 agar cukup sebulan
+  const safetySpend = Math.max(0, Math.floor(totalBalance / 30));
 
   const clearIncomeTransactions = () => {
     if (!window.confirm('Hapus seluruh data keuangan bulan ini (Pemasukan, Pengeluaran & Tabungan)?')) return;

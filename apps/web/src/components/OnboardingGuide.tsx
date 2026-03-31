@@ -11,13 +11,6 @@ const STEPS = [
     bg: 'bg-emerald-500/10'
   },
   {
-    title: 'Atur Tanggal Kapan Saja',
-    description: 'Klik teks tanggal atau icon kalender di bagian atas untuk melihat atau menambah data pada tanggal berapapun secara fleksibel.',
-    icon: 'calendar_month',
-    color: 'text-primary',
-    bg: 'bg-primary/10'
-  },
-  {
     title: 'Pantau Budget & Tabungan',
     description: 'Pisahkan uang Anda ke dalam berbagai kategori budget dan target tabungan agar keuangan lebih terkontrol.',
     icon: 'savings',
