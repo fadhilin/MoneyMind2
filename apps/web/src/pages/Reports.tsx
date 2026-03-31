@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from "react";
 import {
   useMonthlySummary,
-  useBudgetDistribution,
   useTransactionBreakdown,
 } from "../hooks/useReports";
 import { useGlobalDate } from "../hooks/useGlobalDate";
@@ -70,11 +69,7 @@ const Reports: React.FC = () => {
     endDate: periodParams.endDate,
   });
 
-  const { data: budgetDist = [] } = useBudgetDistribution({
-    month: periodParams.month,
-    startDate: periodParams.startDate,
-    endDate: periodParams.endDate,
-  });
+
 
   const { data: breakdown = [] } = useTransactionBreakdown({
     month: periodParams.month,
@@ -112,17 +107,7 @@ const Reports: React.FC = () => {
       [],
     ];
 
-    // Sheet 2: Budgets
-    const budgetHeaders = [["DISTRIBUSI ANGGARAN"], ["Kategori", "Limit", "Terpakai", "Sisa", "Persentase"]];
-    const budgetRows = budgetDist.length > 0 ? budgetDist.map((b: { category: string; limit: number; spent: number; percent: number }) => [
-      b.category,
-      b.limit,
-      b.spent,
-      b.limit - b.spent,
-      b.percent.toFixed(1) + "%"
-    ]) : [["Tidak ada data anggaran"]];
-
-    // Sheet 3: Transactions Breakdown
+    // Sheet 2: Transactions Breakdown
     const breakdownHeaders = [["BREAKDOWN TRANSAKSI"], ["Kategori", "Tipe", "Total (Rp)", "Frekuensi"]];
     const breakdownRows = breakdown.length > 0 ? breakdown.map((item: { category: string; type: string; total: number; count: number }) => [
       item.category,
@@ -137,9 +122,6 @@ const Reports: React.FC = () => {
     // Combine all into one main sheet for simplicity or use multiple
     const mainSheetData = [
       ...summaryData,
-      ...budgetHeaders,
-      ...budgetRows,
-      [],
       ...breakdownHeaders,
       ...breakdownRows
     ];
@@ -222,7 +204,6 @@ const Reports: React.FC = () => {
       {/* Charts Section */}
       <ReportSection
         summary={summary}
-        budgetDist={budgetDist}
         breakdown={breakdown}
         periodLabel={periodParams.label}
         budgets={budgets}

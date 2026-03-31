@@ -3,79 +3,16 @@ import type { ApiMonthlySummary, ApiBudgetDistribution, ApiBreakdownItem, Budget
 
 interface ReportSectionProps {
   summary?: ApiMonthlySummary;
-  budgetDist?: ApiBudgetDistribution[];
   breakdown?: ApiBreakdownItem[];
   periodLabel?: string;
   budgets?: BudgetType[];
   reportPeriod?: string;
 }
 
-const ReportSection: React.FC<ReportSectionProps> = ({ summary, budgetDist = [], periodLabel = '', budgets = [], reportPeriod = '' }) => {
+const ReportSection: React.FC<ReportSectionProps> = ({ summary, periodLabel = '', budgets = [], reportPeriod = '' }) => {
   const totalIncome = summary?.realIncome ?? 0;
   const totalExpense = summary?.adjustedExpense ?? 0;
   const totalBalance = summary?.totalBalance ?? 0;
-
-  // For the donut chart
-  // Safe colors if budgets don't have them
-  const colors = ['#815cf0', '#34d399', '#f59e0b', '#fb7185', '#38bdf8', '#a78bfa'];
-
-  // Map common tailwind colors to hex for SVG strokes
-  const tailwindToHex: Record<string, string> = {
-    'rose-500': '#f43f5e',
-    'emerald-500': '#10b981',
-    'blue-500': '#3b82f6',
-    'amber-500': '#f59e0b',
-    'purple-500': '#a855f7',
-    'orange-500': '#f97316',
-    'cyan-500': '#06b6d4',
-    'pink-500': '#ec4899',
-    'indigo-500': '#6366f1',
-    'teal-500': '#14b8a6',
-    'primary': '#815cf0' // custom theme purple
-  };
-
-  // Helper to map category to its actual budget color
-  const getColorForCategory = (categoryName: string, fallbackIndex: number) => {
-    if (categoryName === 'Lainnya') return '#94a3b8'; // slate-400
-    const customColor = budgets.find(b => b.category === categoryName)?.color;
-    if (customColor) {
-      const baseColor = customColor.replace('text-', '').replace('bg-', '');
-      return tailwindToHex[baseColor] || colors[fallbackIndex % colors.length];
-    }
-    return colors[fallbackIndex % colors.length];
-  };
-
-  // Pre-calculate segments to avoid React reassignment warnings during render
-  const budgetSpentSum = budgetDist.reduce((sum, b) => sum + b.spent, 0);
-  const otherSpent = Math.max(0, totalExpense - budgetSpentSum);
-
-  const pieces = budgetDist.filter(b => b.spent > 0).map(b => {
-    return {
-      ...b,
-      spentRatio: totalExpense > 0 ? (b.spent / totalExpense) * 100 : 0
-    };
-  });
-
-  if (otherSpent > 0) {
-    pieces.push({
-      category: 'Lainnya',
-      spent: otherSpent,
-      limit: 0,
-      percent: 0,
-      spentRatio: (otherSpent / totalExpense) * 100
-    });
-  }
-
-  const segments = pieces.reduce((acc, b) => {
-    const tempOffset = acc.length > 0 ? -(acc[acc.length - 1].dashOffset - acc[acc.length - 1].spentRatio) : 0;
-    
-    acc.push({
-      ...b,
-      dashArray: `${b.spentRatio}, 100`,
-      dashOffset: -tempOffset
-    });
-    return acc;
-  }, [] as (typeof pieces[0] & { dashArray: string, dashOffset: number })[]);
 
   return (
     <div className="space-y-8">
@@ -119,75 +56,8 @@ const ReportSection: React.FC<ReportSectionProps> = ({ summary, budgetDist = [],
       </div>
 
       {/* Charts Section */}
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <div className="lg:col-span-2 glass p-6 md:p-8 rounded-2xl md:rounded-3xl flex flex-col justify-between border border-slate-100 dark:border-white/5">
-          <div>
-            <div className="flex items-center justify-between mb-6 md:mb-8">
-              <h4 className="font-bold text-base md:text-lg text-black dark:text-white">Distribusi Budget</h4>
-              <span className="material-symbols-outlined text-slate-500 text-sm md:text-base">pie_chart</span>
-            </div>
-            <div className="flex justify-center py-4 md:py-6">
-              <div className="relative size-40 md:size-48">
-                <svg className="size-full transform -rotate-90" viewBox="0 0 36 36">
-                  {/* Background Circle */}
-                  <path className="text-slate-100 dark:text-white/5 stroke-current" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" strokeWidth="4"></path>
-                  
-                  {/* Dynamic Segments */}
-                  {segments.map((b, i) => (
-                    <path 
-                      key={`${b.category}-${i}`}
-                      stroke={getColorForCategory(b.category, i)}
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" 
-                      fill="none" 
-                      strokeDasharray={b.dashArray} 
-                      strokeDashoffset={b.dashOffset} 
-                      strokeLinecap="round" 
-                      strokeWidth="4"
-                      className="transition-all duration-1000"
-                    />
-                  ))}
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Budget</p>
-                  <p className="text-sm md:text-base font-black text-black dark:text-white leading-none">
-                    {totalExpense >= 1000000 
-                      ? `${(totalExpense / 1000000).toFixed(1)}jt` 
-                      : totalExpense >= 1000 
-                        ? `${(totalExpense / 1000).toLocaleString('id-ID')}rb`
-                        : totalExpense.toLocaleString('id-ID')}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-y-2.5 mt-6 md:mt-8">
-             {pieces.map((b, i) => {
-               const spentRatio = totalExpense > 0 ? Math.round((b.spent / totalExpense) * 100) : 0;
-               const customColor = budgets.find(bg => bg.category === b.category)?.color;
-               
-               return (
-                 <div key={b.category} className="flex items-center gap-2">
-                   {b.category === 'Lainnya' ? (
-                     <span className="size-2.5 md:size-3 rounded-full bg-slate-400 shrink-0"></span>
-                   ) : customColor ? (
-                     <span className={`size-2.5 md:size-3 rounded-full bg-${customColor.replace('text-', '').replace('bg-', '')} shrink-0`}></span>
-                   ) : (
-                     <span className="size-2.5 md:size-3 rounded-full shrink-0" style={{ backgroundColor: colors[i % colors.length] }}></span>
-                   )}
-                   <span className="text-[10px] md:text-xs text-slate-500 font-medium truncate w-full" title={`${b.category} (${spentRatio}%)`}>
-                     {b.category} ({spentRatio}%)
-                   </span>
-                 </div>
-               );
-             })}
-            {pieces.length === 0 && (
-              <span className="text-[10px] text-slate-400 col-span-2 text-center mt-4">Belum ada transaksi di periode ini.</span>
-            )}
-          </div>
-        </div>
-
-        <div className="lg:col-span-3 glass p-6 md:p-8 rounded-2xl md:rounded-3xl flex flex-col border border-slate-100 dark:border-white/5">
+      <div className="flex flex-col gap-6">
+        <div className="glass p-6 md:p-8 rounded-2xl md:rounded-3xl flex flex-col border border-slate-100 dark:border-white/5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 md:mb-8 gap-2">
             <div>
               <h4 className="font-bold text-base md:text-lg text-black dark:text-white">Tren Pengeluaran</h4>
