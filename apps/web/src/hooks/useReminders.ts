@@ -62,7 +62,7 @@ async function syncLocalNotifications(reminders: Reminder[]) {
         
         return {
           title: `⏰ Tagihan Jatuh Tempo!`,
-          body: `Waktunya bayar ${r.name}${r.amount ? ` sebesar Rp ${r.amount.toLocaleString('id-ID')}` : ''}. Segera catat pengeluaranmu!`,
+          body: `Waktunya ${r.name}${r.amount ? ` sebesar Rp ${r.amount.toLocaleString('id-ID')}` : ''}. Segera catat pengeluaranmu!`,
           id: index + 100,
           schedule: {
             on: {
