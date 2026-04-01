@@ -4,7 +4,6 @@ import {
   useTransactionBreakdown,
 } from "../hooks/useReports";
 import { useGlobalDate } from "../hooks/useGlobalDate";
-import { useBudgets } from "../hooks/useBudgets";
 import ReportSection from "../components/ReportSection";
 import * as XLSX from "xlsx";
 import { Filesystem, Directory } from "@capacitor/filesystem";
@@ -76,8 +75,6 @@ const Reports: React.FC = () => {
     startDate: periodParams.startDate,
     endDate: periodParams.endDate,
   });
-
-  const { data: budgets = [] } = useBudgets(periodParams.month, reportDate);
 
   const totalIncome = summary?.realIncome ?? 0;
   const totalExpense = summary?.adjustedExpense ?? 0;
@@ -206,7 +203,6 @@ const Reports: React.FC = () => {
         summary={summary}
         breakdown={breakdown}
         periodLabel={periodParams.label}
-        budgets={budgets}
         reportPeriod={reportPeriod}
       />
 

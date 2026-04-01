@@ -1,15 +1,14 @@
 import React from 'react';
-import type { ApiMonthlySummary, ApiBudgetDistribution, ApiBreakdownItem, Budget as BudgetType } from '../types/finance';
+import type { ApiMonthlySummary, ApiBreakdownItem } from '../types/finance';
 
 interface ReportSectionProps {
   summary?: ApiMonthlySummary;
   breakdown?: ApiBreakdownItem[];
   periodLabel?: string;
-  budgets?: BudgetType[];
   reportPeriod?: string;
 }
 
-const ReportSection: React.FC<ReportSectionProps> = ({ summary, periodLabel = '', budgets = [], reportPeriod = '' }) => {
+const ReportSection: React.FC<ReportSectionProps> = ({ summary, periodLabel = '', reportPeriod = '' }) => {
   const totalIncome = summary?.realIncome ?? 0;
   const totalExpense = summary?.adjustedExpense ?? 0;
   const totalBalance = summary?.totalBalance ?? 0;
