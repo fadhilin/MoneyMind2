@@ -27,6 +27,7 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
   const { templates, addTemplate, removeTemplate } = useQuickTemplates();
 
   const totalIncome = summary?.totalIncome ?? 0;
+  const globalBalance = summary?.globalBalance ?? 0;
   const safetySpend = summary?.safetySpend ?? 0;
 
   // Numpad state
@@ -98,8 +99,8 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
     if (txAmount <= 0) return alert("Nominal tidak valid");
 
     if (txType === "expense") {
-      if (totalIncome === 0) {
-        return alert("Gagal! Silahkan input pemasukan terlebih dahulu.");
+      if (totalIncome === 0 && globalBalance <= 0) {
+        return alert("Gagal! Saldo Anda kosong. Silahkan input pemasukan terlebih dahulu.");
       }
       if (txAmount > safetySpend) {
         if (!window.confirm("Melebihi safety spend. Tetap simpan?")) {
