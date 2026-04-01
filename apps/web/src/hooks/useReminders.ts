@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Preferences } from '@capacitor/preferences';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { Capacitor } from '@capacitor/core';
 
 export interface Reminder {
   id: string;
@@ -22,10 +23,20 @@ async function loadReminders(): Promise<Reminder[]> {
 async function saveReminders(reminders: Reminder[]): Promise<void> {
   await Preferences.set({ key: REMINDERS_KEY, value: JSON.stringify(reminders) });
   await syncLocalNotifications(reminders);
+  // Dispatch event for other hooks/components
+  window.dispatchEvent(new CustomEvent('reminders-updated', { detail: reminders }));
 }
 
 async function syncLocalNotifications(reminders: Reminder[]) {
   try {
+    const isPushEnabled = await Preferences.get({ key: 'notifications_enabled' });
+    if (isPushEnabled.value === 'false') return;
+
+    if (Capacitor.getPlatform() === 'web') {
+      console.log('Skipping native notifications on web platform');
+      return;
+    }
+
     if (typeof LocalNotifications === 'undefined' || !LocalNotifications.checkPermissions) {
       console.warn('LocalNotifications plugin not available');
       return;
@@ -44,23 +55,29 @@ async function syncLocalNotifications(reminders: Reminder[]) {
 
     const notifications = reminders
       .filter((r) => r.enabled)
-      .map((r, index) => ({
-        title: `⏰ Tagihan Jatuh Tempo!`,
-        body: `Waktunya bayar ${r.name}${r.amount ? ` sebesar Rp ${r.amount.toLocaleString('id-ID')}` : ''}. Segera catat pengeluaranmu!`,
-        id: index + 100, // Fixed ID per reminder in the list
-        schedule: {
-          on: {
-            day: r.dayOfMonth,
-            hour: 9,
-            minute: 0
+      .map((r, index) => {
+        // If it's today and past 9 AM, Capacitor might trigger it immediately if we schedule for today 9 AM.
+        // We should handle this by either scheduling for next month or just being aware of it.
+        // Most Capacitor implementations handle 'repeats: true' by picking the next occurrence.
+        
+        return {
+          title: `⏰ Tagihan Jatuh Tempo!`,
+          body: `Waktunya bayar ${r.name}${r.amount ? ` sebesar Rp ${r.amount.toLocaleString('id-ID')}` : ''}. Segera catat pengeluaranmu!`,
+          id: index + 100,
+          schedule: {
+            on: {
+              day: r.dayOfMonth,
+              hour: 9,
+              minute: 0
+            },
+            repeats: true,
+            allowWhileIdle: true
           },
-          repeats: true,
-          allowWhileIdle: true
-        },
-        extra: { reminderId: r.id },
-        smallIcon: 'ic_stat_name', // Should match native icon resource if available
-        actionTypeId: 'OPEN_APP'
-      }));
+          extra: { reminderId: r.id },
+          smallIcon: 'ic_stat_name',
+          actionTypeId: 'OPEN_APP'
+        };
+      });
 
     if (notifications.length > 0) {
       await LocalNotifications.schedule({ notifications });

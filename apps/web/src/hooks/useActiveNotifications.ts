@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useMonthlySummary } from './useReports';
 import { useBudgets } from './useBudgets';
 import { useSavings } from './useSavings';
@@ -67,11 +67,24 @@ export function useActiveNotifications() {
 
   // Load reminders for notifications
   const [reminders, setRemindersState] = useState<{id: string; name: string; dayOfMonth: number; amount?: number; icon: string; enabled: boolean}[]>([]);
-  useEffect(() => {
+  
+  const refreshReminders = useCallback(() => {
     Preferences.get({ key: 'payment_reminders' }).then(({ value }) => {
       if (value) setRemindersState(JSON.parse(value));
     });
   }, []);
+
+  useEffect(() => {
+    refreshReminders();
+
+    const handleRemindersUpdate = (e: any) => {
+       if (e.detail) setRemindersState(e.detail);
+       else refreshReminders();
+    };
+
+    window.addEventListener('reminders-updated', handleRemindersUpdate);
+    return () => window.removeEventListener('reminders-updated', handleRemindersUpdate);
+  }, [refreshReminders]);
 
   const notifications: Notification[] = [];
 
