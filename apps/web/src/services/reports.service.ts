@@ -6,15 +6,24 @@ async function getFilteredTransactions(month?: string, date?: string, startDate?
   let txs = await db.transactions.toArray();
 
   if (startDate && endDate) {
-    const start = new Date(`${startDate}T00:00:00.000Z`).toISOString();
-    const end = new Date(new Date(endDate).getFullYear(), new Date(endDate).getMonth(), new Date(endDate).getDate(), 23, 59, 59, 999).toISOString();
-    txs = txs.filter(tx => tx.date >= start && tx.date <= end);
+    txs = txs.filter(tx => {
+      const txDate = tx.date.slice(0, 10);
+      return txDate >= startDate && txDate <= endDate;
+    });
   } else if (date) {
-    txs = txs.filter(tx => tx.date.startsWith(date));
+    txs = txs.filter(tx => tx.date.slice(0, 10) === date);
   } else if (month) {
-    const start = new Date(`${month}-01T00:00:00.000Z`).toISOString();
-    const end = new Date(new Date(start).getFullYear(), new Date(start).getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
-    txs = txs.filter(tx => tx.date >= start && tx.date <= end);
+    const [yearStr, monStr] = month.split('-');
+    const year = parseInt(yearStr, 10);
+    const mon = parseInt(monStr, 10);
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const start = `${year}-${pad(mon)}-01`;
+    const lastDay = new Date(year, mon, 0).getDate();
+    const end = `${year}-${pad(mon)}-${pad(lastDay)}`;
+    txs = txs.filter(tx => {
+      const txDate = tx.date.slice(0, 10);
+      return txDate >= start && txDate <= end;
+    });
   }
   return txs;
 }
@@ -138,8 +147,8 @@ export async function getTransactionBreakdown(month: string, date?: string, star
 }
 
 export async function getAvatarStatus(): Promise<{ status: string }> {
-  const todayStr = new Date().toISOString().split('T')[0];
-  const todayTxs = await db.transactions.filter(t => t.date.startsWith(todayStr)).toArray();
+  const todayStr = new Date().toLocaleDateString('en-CA');
+  const todayTxs = await db.transactions.filter(t => t.date.slice(0, 10) === todayStr).toArray();
   
   const hasBigExpense = todayTxs.some(t => t.type === 'expense' && t.amount >= 1000000);
   const hasDebtPaid = todayTxs.some(t => t.type === 'expense' && t.category.toLowerCase().includes('hutang'));

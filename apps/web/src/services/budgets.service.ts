@@ -106,9 +106,9 @@ export async function getBudgets(
     let txQuery = db.transactions.filter((tx) => tx.category === b.category);
     // Use the same priority as reports service
     if (date) {
-      txQuery = txQuery.filter((tx) => tx.date.startsWith(date));
+      txQuery = txQuery.filter((tx) => tx.date.slice(0, 10) === date);
     } else if (month) {
-      txQuery = txQuery.filter((tx) => tx.date.startsWith(month));
+      txQuery = txQuery.filter((tx) => tx.date.slice(0, 7) === month);
     }
 
     const relatedTx = await txQuery.toArray();
@@ -176,12 +176,12 @@ export async function deleteBudget(
   }
 
   // Calculate net spent for this month to refund
-  const prefix = month || new Date().toISOString().slice(0, 7);
+  const prefix = month || new Date().toLocaleDateString('en-CA').slice(0, 7);
 
   // 1. Hapus tulisan ': Transaction[]' agar TypeScript menebak tipenya otomatis
   // 2. Ganti kata 'month' di dalam startsWith menjadi 'prefix'
   const txs = await db.transactions
-    .filter((t) => t.category === b.category && t.date.startsWith(prefix))
+    .filter((t) => t.category === b.category && t.date.slice(0, 7) === prefix)
     .toArray();
   const expense = txs
     .filter((t) => t.type === "expense")
@@ -197,7 +197,7 @@ export async function deleteBudget(
       type: "expense",
       amount: -spent,
       category: b.category,
-      date: new Date().toISOString(),
+      date: new Date().toLocaleDateString('en-CA'),
       note: `Refund Penghapusan Budget ${b.category}`,
       icon: b.icon,
     });
@@ -221,9 +221,7 @@ export async function depositBudget(
     amount: amount,
     category: b.category,
     date:
-      date && date.length === 10
-        ? `${date}T${new Date().toISOString().split("T")[1]}`
-        : date || new Date().toISOString(),
+      date ? date.slice(0, 10) : new Date().toLocaleDateString('en-CA'),
     note: `Alokasi Budget ${b.category}`,
     icon: b.icon,
   });
@@ -243,9 +241,7 @@ export async function withdrawBudget(
     amount: -amount,
     category: b.category,
     date:
-      date && date.length === 10
-        ? `${date}T${new Date().toISOString().split("T")[1]}`
-        : date || new Date().toISOString(),
+      date ? date.slice(0, 10) : new Date().toLocaleDateString('en-CA'),
     note: `Refund Budget ${b.category}`,
     icon: b.icon,
   });

@@ -56,7 +56,7 @@ export async function deleteSaving(id: string, date?: string): Promise<Saving> {
         type: 'expense',
         amount: -s.current,
         category: 'Pencairan Tabungan',
-        date: date || new Date().toISOString(),
+        date: date ? date.slice(0, 10) : new Date().toLocaleDateString('en-CA'),
         note: `Pencairan tabungan dari penghapusan ${s.name}`,
         icon: s.icon
       });
@@ -77,9 +77,7 @@ export async function depositSaving(id: string, amount: number, date?: string): 
     amount: amount,
     category: 'Tabungan',
     date:
-      date && date.length === 10
-        ? `${date}T${new Date().toISOString().split("T")[1]}`
-        : date || new Date().toISOString(),
+      date ? date.slice(0, 10) : new Date().toLocaleDateString('en-CA'),
     note: `Setor ke tabungan: ${s.name}`,
     icon: s.icon
   });
@@ -99,9 +97,7 @@ export async function withdrawSaving(id: string, amount: number, date?: string):
     amount: -amount,
     category: 'Pencairan Tabungan',
     date:
-      date && date.length === 10
-        ? `${date}T${new Date().toISOString().split("T")[1]}`
-        : date || new Date().toISOString(),
+      date ? date.slice(0, 10) : new Date().toLocaleDateString('en-CA'),
     note: `Tarik dari tabungan: ${s.name}`,
     icon: s.icon
   });

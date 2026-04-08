@@ -20,7 +20,7 @@ const Savings: React.FC = () => {
   // Users explicitly want Savings interactions to always drop into "Today", 
   // bypassing whatever historical date they might be viewing.
   // Ensure consistency by using UTC-based date for "Today"
-  const todayDate = new Date().toISOString().split('T')[0];
+  const todayDate = new Date().toLocaleDateString('en-CA');
 
   const { data: savings = [], isLoading } = useSavings();
   const { data: monthSummary } = useMonthlySummary({ month: selectedMonth });

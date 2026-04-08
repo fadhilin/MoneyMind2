@@ -9,7 +9,7 @@ export const setGlobalDate = async (date: string) => {
 };
 
 export const useGlobalDate = (): [string, (date: string) => void] => {
-  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(() => new Date().toLocaleDateString('en-CA'));
   
   useEffect(() => {
     const loadDate = async () => {

@@ -165,8 +165,8 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   // Calculations
   const filteredTransactions = transactions.filter(t => {
-    const d = new Date(t.date);
-    return d.getMonth() === selectedMonth.getMonth() && d.getFullYear() === selectedMonth.getFullYear();
+    const [y, m] = t.date.slice(0, 7).split('-').map(Number);
+    return (m - 1) === selectedMonth.getMonth() && y === selectedMonth.getFullYear();
   });
 
   const totalIncome = filteredTransactions
@@ -208,8 +208,8 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (!window.confirm('Hapus seluruh data keuangan bulan ini (Pemasukan, Pengeluaran & Tabungan)?')) return;
     
     setTransactions(prev => prev.filter(t => {
-      const d = new Date(t.date);
-      return d.getMonth() !== selectedMonth.getMonth() || d.getFullYear() !== selectedMonth.getFullYear();
+      const [y, m] = t.date.slice(0, 7).split('-').map(Number);
+      return (m - 1) !== selectedMonth.getMonth() || y !== selectedMonth.getFullYear();
     }));
 
     setSavings(prev => prev.map(s => ({ ...s, current: 0 })));

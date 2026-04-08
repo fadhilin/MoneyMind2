@@ -52,10 +52,7 @@ const TransactionHistory = () => {
                   </span>
                   <span className="size-1 bg-slate-300 rounded-full"></span>
                   <span className="text-[10px] text-slate-500">
-                    {new Date(tx.date).toLocaleDateString("id-ID", {
-                      day: "numeric",
-                      month: "short",
-                    })}
+                    {(() => { const [y, m, d] = tx.date.slice(0, 10).split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }); })()}
                   </span>
                 </div>
               </div>

@@ -27,9 +27,12 @@ const Transactions: React.FC = () => {
     return 0;
   });
 
-  // Group by date
+  // Group by date — use plain YYYY-MM-DD to avoid timezone shifts
   const grouped = transactions.reduce((acc, t) => {
-    const d = new Date(t.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    // Extract just the date portion (YYYY-MM-DD), then format at noon UTC to avoid timezone day shifts
+    const dateStr = t.date.slice(0, 10);
+    const [y, m, day] = dateStr.split('-').map(Number);
+    const d = new Date(y, m - 1, day).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
     if (!acc[d]) acc[d] = [];
     acc[d].push(t);
     return acc;
@@ -143,7 +146,7 @@ const Transactions: React.FC = () => {
                       </div>
                       <div className="min-w-0">
                         <p className="font-semibold text-sm md:text-base text-black dark:text-white truncate">{tx.note || tx.category}</p>
-                        <p className="text-[10px] md:text-xs text-slate-500 mt-0.5 truncate">{tx.category} • {new Date(tx.date).toLocaleDateString('id-ID', { month: 'short' })}</p>
+                        <p className="text-[10px] md:text-xs text-slate-500 mt-0.5 truncate">{tx.category} • {(() => { const [y, m] = tx.date.slice(0, 10).split('-').map(Number); return new Date(y, m - 1, 1).toLocaleDateString('id-ID', { month: 'short' }); })()}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 md:gap-4 z-10 shrink-0">

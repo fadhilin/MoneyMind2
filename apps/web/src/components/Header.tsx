@@ -55,7 +55,8 @@ const Header = ({ darkMode, isSidebarOpen = false, onMenuClick }: HeaderProps) =
   const { user } = useAuth();
   const [globalDate, setGlobalDate] = useGlobalDate();
   const [reportPeriod] = useGlobalReportPeriod();
-  const selectedDateObj = new Date(globalDate);
+  const [y, m, d] = globalDate.split('-').map(Number);
+  const selectedDateObj = new Date(y, m - 1, d);
   const [showNotifs, setShowNotifs] = useState(false);
   const dateInputRef = useRef<HTMLInputElement>(null);
   const location = useLocation();
@@ -86,7 +87,8 @@ const Header = ({ darkMode, isSidebarOpen = false, onMenuClick }: HeaderProps) =
   }, [isStaticDatePage, today, globalDate, setGlobalDate]);
 
   const handlePrevDay = () => {
-    const newDate = new Date(globalDate);
+    const [y, m, d] = globalDate.split('-').map(Number);
+    const newDate = new Date(y, m - 1, d);
     if (location.pathname === '/reports') {
       if (reportPeriod === 'weekly') {
         newDate.setDate(newDate.getDate() - 7);
@@ -98,11 +100,12 @@ const Header = ({ darkMode, isSidebarOpen = false, onMenuClick }: HeaderProps) =
     } else {
       newDate.setDate(newDate.getDate() - 1);
     }
-    setGlobalDate(newDate.toISOString().split('T')[0]);
+    setGlobalDate(newDate.toLocaleDateString('en-CA'));
   };
 
   const handleNextDay = () => {
-    const newDate = new Date(globalDate);
+    const [y2, m2, d2] = globalDate.split('-').map(Number);
+    const newDate = new Date(y2, m2 - 1, d2);
     if (location.pathname === '/reports') {
       if (reportPeriod === 'weekly') {
         newDate.setDate(newDate.getDate() + 7);
@@ -114,7 +117,7 @@ const Header = ({ darkMode, isSidebarOpen = false, onMenuClick }: HeaderProps) =
     } else {
       newDate.setDate(newDate.getDate() + 1);
     }
-    setGlobalDate(newDate.toISOString().split('T')[0]);
+    setGlobalDate(newDate.toLocaleDateString('en-CA'));
   };
 
   const displayName = user?.name ?? 'Pengguna';

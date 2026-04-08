@@ -22,9 +22,10 @@ export function useCreateTransaction() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateTransactionInput) => {
-      const normalizedDate = input.date && input.date.length === 10 
-        ? `${input.date}T${new Date().toISOString().split('T')[1]}` 
-        : (input.date || new Date().toISOString());
+      // Always store as plain YYYY-MM-DD to avoid timezone shifts
+      const normalizedDate = input.date && input.date.length >= 10
+        ? input.date.slice(0, 10)
+        : new Date().toLocaleDateString('en-CA'); // 'en-CA' gives YYYY-MM-DD in local timezone
       return txService.createTransaction({ ...input, date: normalizedDate });
     },
     onSuccess: () => {

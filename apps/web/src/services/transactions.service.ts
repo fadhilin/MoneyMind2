@@ -28,13 +28,22 @@ export async function getTransactions(params: GetTransactionsParams = {}): Promi
   let data = await db.transactions.orderBy('date').reverse().toArray();
 
   if (params.month) {
-    const start = new Date(`${params.month}-01T00:00:00.000Z`).toISOString();
-    const end = new Date(new Date(start).getFullYear(), new Date(start).getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
-    data = data.filter(tx => tx.date >= start && tx.date <= end);
+    // Use plain YYYY-MM-DD comparisons to avoid timezone boundary issues
+    const [yearStr, monStr] = params.month.split('-');
+    const year = parseInt(yearStr, 10);
+    const mon = parseInt(monStr, 10);
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const start = `${year}-${pad(mon)}-01`;
+    const lastDay = new Date(year, mon, 0).getDate();
+    const end = `${year}-${pad(mon)}-${pad(lastDay)}`;
+    data = data.filter(tx => {
+      const txDate = tx.date.slice(0, 10); // Extract YYYY-MM-DD from any format
+      return txDate >= start && txDate <= end;
+    });
   }
 
   if (params.date) {
-    data = data.filter(tx => tx.date.startsWith(params.date as string));
+    data = data.filter(tx => tx.date.slice(0, 10) === params.date);
   }
 
   if (params.type) {
@@ -79,15 +88,23 @@ export async function deleteTransaction(id: string): Promise<Transaction> {
 }
 
 export async function deleteTransactionsByMonth(yearMonth: string): Promise<Transaction[]> {
-  const start = new Date(`${yearMonth}-01T00:00:00.000Z`).toISOString();
-  const end = new Date(new Date(start).getFullYear(), new Date(start).getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
-  const toDelete = await db.transactions.filter(tx => tx.date >= start && tx.date <= end).toArray();
+  const [yearStr, monStr] = yearMonth.split('-');
+  const year = parseInt(yearStr, 10);
+  const mon = parseInt(monStr, 10);
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const start = `${year}-${pad(mon)}-01`;
+  const lastDay = new Date(year, mon, 0).getDate();
+  const end = `${year}-${pad(mon)}-${pad(lastDay)}`;
+  const toDelete = await db.transactions.filter(tx => {
+    const txDate = tx.date.slice(0, 10);
+    return txDate >= start && txDate <= end;
+  }).toArray();
   await db.transactions.bulkDelete(toDelete.map(t => t.id));
   return toDelete;
 }
 
 export async function deleteTransactionsByDate(dateValue: string): Promise<Transaction[]> {
-  const toDelete = await db.transactions.filter(tx => tx.date.startsWith(dateValue)).toArray();
+  const toDelete = await db.transactions.filter(tx => tx.date.slice(0, 10) === dateValue).toArray();
   await db.transactions.bulkDelete(toDelete.map(t => t.id));
   return toDelete;
 }

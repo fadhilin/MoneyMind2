@@ -18,17 +18,16 @@ const Reports: React.FC = () => {
 
   const [reportDate, setReportDate] = useState<string>(globalDate);
 
-  // Helper to format date string to YYYY-MM-DD
+  // Helper to format date to YYYY-MM-DD in local timezone
   const formatDate = (date: Date) => {
-    const d = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-    return d.toISOString().split("T")[0];
+    return date.toLocaleDateString('en-CA');
   };
 
   const periodParams = useMemo(() => {
-    const dateObj = new Date(reportDate);
-    const year = dateObj.getFullYear();
-    const month = dateObj.getMonth();
-    const day = dateObj.getDate();
+    const [y, m, d] = reportDate.split('-').map(Number);
+    const year = y;
+    const month = m - 1;
+    const day = d;
     const monthStr = reportDate.slice(0, 7);
 
     // Default: Monthly
@@ -85,7 +84,7 @@ const Reports: React.FC = () => {
       : 0;
 
   const exportToExcel = async () => {
-    const todayDate = new Date().toISOString().split("T")[0];
+    const todayDate = new Date().toLocaleDateString('en-CA');
     
     // 1. Prepare data for Excel sheets
     

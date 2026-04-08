@@ -9,7 +9,7 @@ const HeroSection = () => {
 
   const { data: summary } = useMonthlySummary({ month: todayMonth });
 
-  // Saldo Kamu Saat Ini -> Global Cumulative Balance
+  // Saldo Kamu Saat Ini
   const totalBalance = summary?.globalBalance ?? 0;
   const safetySpend = summary?.safetySpend ?? 0;
 
@@ -74,7 +74,7 @@ const HeroSection = () => {
 
             <div className="space-y-3">
               <p className="text-[10px] leading-relaxed text-slate-600 dark:text-slate-400">
-                Ini adalah jatah belanja harian agar saldo Anda cukup sampai
+                Ini adalah batas belanja harian agar saldo Anda cukup sampai
                 akhir bulan.
               </p>
             </div>
