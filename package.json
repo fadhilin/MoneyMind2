@@ -7,7 +7,7 @@
     "apps/*"
   ],
 "scripts": {
-  "dev": "cd apps/web && npx vite --force-color"
+  "dev": "cd apps/web && npx vite"
 },
   "overrides": {
     "esbuild": "0.25.0"
