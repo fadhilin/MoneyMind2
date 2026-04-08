@@ -8,6 +8,14 @@ import type { QuickTemplate } from "../hooks/useQuickTemplates";
 import { formatCurrencyInput } from "../utils/formatters";
 import type { TransactionType } from "../types/finance";
 
+const categoryIcons = [
+  "restaurant", "shopping_cart", "directions_car", "house", "receipt_long",
+  "fitness_center", "medical_services", "movie", "commute", "school",
+  "category", "account_balance_wallet", "payments", "store", "trending_up",
+  "redeem", "savings", "coffee", "pets", "flight", "build", "phonelink_setup",
+  "wifi", "health_and_safety"
+];
+
 interface QuickInputProps {
   isOpen: boolean;
   onClose: () => void;
@@ -40,6 +48,7 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
   // New Category State
   const [isAddingNewCategory, setIsAddingNewCategory] = useState(false);
   const [newCatName, setNewCatName] = useState("");
+  const [newCatIcon, setNewCatIcon] = useState("category");
   const createBudget = useCreateBudget();
 
   // Template entry state
@@ -63,6 +72,7 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
     setIsAddingTemplate(false);
     setIsAddingNewCategory(false);
     setNewCatName("");
+    setNewCatIcon("category");
     setTempName("");
     setVoiceResult("");
     setParsedVoice(null);
@@ -437,7 +447,7 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
 
                   {isAddingNewCategory && (
                      <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/10 animate-in slide-in-from-bottom-2">
-                        <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-4">
                            <input 
                               value={newCatName}
                               onChange={e => setNewCatName(e.target.value)}
@@ -445,6 +455,22 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
                               className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm focus:border-primary outline-hidden"
                               autoFocus
                            />
+                           
+                           <div className="space-y-2">
+                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Pilih Icon</p>
+                              <div className="grid grid-cols-6 gap-2 max-h-32 overflow-y-auto pr-1 custom-scrollbar">
+                                 {categoryIcons.map(icon => (
+                                    <button
+                                       key={icon}
+                                       onClick={() => setNewCatIcon(icon)}
+                                       className={`size-10 flex items-center justify-center rounded-xl transition-all ${newCatIcon === icon ? 'bg-primary text-white shadow-lg' : 'bg-slate-50 dark:bg-white/5 text-slate-400 hover:text-primary'}`}
+                                    >
+                                       <span className="material-symbols-outlined text-xl">{icon}</span>
+                                    </button>
+                                 ))}
+                              </div>
+                           </div>
+
                            <div className="flex gap-2">
                               <button onClick={() => setIsAddingNewCategory(false)} className="flex-1 py-3 bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-white font-bold rounded-xl">Batal</button>
                               <button 
@@ -453,13 +479,14 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
                                        createBudget.mutate({
                                           category: newCatName.trim(),
                                           date: txMonth + "-01",
-                                          icon: "category",
+                                          icon: newCatIcon,
                                           color: "slate-500"
                                        }, {
                                           onSuccess: () => {
                                              setCategory(newCatName.trim());
                                              setIsAddingNewCategory(false);
                                              setNewCatName("");
+                                             setNewCatIcon("category");
                                           }
                                        });
                                     }
