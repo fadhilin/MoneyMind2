@@ -374,14 +374,12 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
         }
       }
 
-      // SIMPAN KE REF AGAR TIDAK HILANG/KOSONG SAAT ONEND DIPANGGIL
       latestTranscriptRef.current = currentTranscript;
 
       if (isFinalFound) {
         setVoiceResult(currentTranscript);
         parseVoiceCommand(latestTranscriptRef.current);
       } else {
-        // Tampilkan teks sementara di layar
         setVoiceResult(currentTranscript + "...");
       }
     };
@@ -394,9 +392,6 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
     recognition.onend = () => {
       setIsRecording(false);
       
-      // JURUS PAMUNGKAS SAFARI:
-      // Safari sering memutus mic tanpa isFinal. Jadi saat onend, 
-      // kita paksa eksekusi dari memori cadangan (Ref).
       if (latestTranscriptRef.current) {
         parseVoiceCommand(latestTranscriptRef.current);
       }
@@ -416,7 +411,7 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
 
   if (!rawText) return;
 
-  setVoiceResult("Memahami ucapan dengan AI...");
+  setVoiceResult("Memahami ucapan...");
 
   try {
     // 1. Coba pakai AI dulu
@@ -976,7 +971,7 @@ handleSaveTransaction(
                 {isScanning && (
                    <div className="flex-1 flex flex-col items-center justify-center py-10 opacity-70">
                       <span className="material-symbols-outlined text-4xl animate-spin text-primary mb-4">document_scanner</span>
-                      <p className="text-sm font-bold animate-pulse text-slate-600 dark:text-slate-400">AI memproses gambar...</p>
+                      <p className="text-sm font-bold animate-pulse text-slate-600 dark:text-slate-400">Memproses gambar...</p>
                    </div>
                 )}
 
@@ -990,7 +985,7 @@ handleSaveTransaction(
                     <div className="flex-1 flex flex-col items-center justify-center text-center opacity-50 py-10">
                         <span className="material-symbols-outlined text-6xl mb-4">receipt_long</span>
                         <p className="font-bold">Ketuk ikon kamera di atas</p>
-                        <p className="text-xs mt-1 px-4 max-w-[250px]">Ambil foto struk belanja yang jelas agar mudah dibaca oleh AI.</p>
+                        <p className="text-xs mt-1 px-4 max-w-[250px]">Ambil foto struk belanja yang jelas agar mudah dibaca.</p>
                     </div>
                 )}
 
@@ -1048,10 +1043,10 @@ handleSaveTransaction(
                                             const newItems = scanItems.filter((_, i) => i !== idx);
                                             setScanItems(newItems);
                                         }}
-                                        className="absolute top-2 right-2 text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 bg-rose-50 dark:bg-rose-500/20 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-500/40"
+                                        className="absolute top-2 right-2 text-rose-500 transition-opacity p-1"
                                         title="Hapus item"
                                     >
-                                        <span className="material-symbols-outlined text-[16px] block">delete</span>
+                                        <span className="material-symbols-outlined text-[10px] block">delete</span>
                                     </button>
                                 </div>
                             ))}

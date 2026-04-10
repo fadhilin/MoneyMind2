@@ -191,11 +191,27 @@ Contoh balasan:
     let content = data?.choices?.[0]?.message?.content;
     if (!content) return null;
 
-    // Bersihkan markdown blok jika AI masih membandel
-    content = content.replace(/^```json/g, "").replace(/^```/g, "").replace(/```$/g, "").trim();
+    // Sangat agresif membersihkan sisa teks/markdown agar JSON.parse tidak gagal (IOS Safari issue prevention)
+    content = content.replace(/```json/gi, "");
+    content = content.replace(/```/gi, "");
+    
+    // Cari index bracket [ ] pertama dan terakhir untuk memotong teks ekstra yang halu dari AI
+    const startIndex = content.indexOf('[');
+    const endIndex = content.lastIndexOf(']');
+    
+    if (startIndex !== -1 && endIndex !== -1) {
+        content = content.substring(startIndex, endIndex + 1);
+    }
 
-    const parsed: ParsedReceiptItem[] = JSON.parse(content);
-    return parsed;
+    content = content.trim();
+
+    try {
+        const parsed: ParsedReceiptItem[] = JSON.parse(content);
+        return parsed;
+    } catch (parseError) {
+        console.error("JSON Parse Error dari AI:", parseError, "Content AI:", content);
+        return null;
+    }
   } catch (error) {
     console.error("parseReceiptWithAI error:", error);
     return null;
