@@ -37,28 +37,81 @@ const Layout = ({ darkMode }: { darkMode: boolean }) => {
 
   // Check reminders on startup
   useEffect(() => {
-    const alreadyShown = sessionStorage.getItem('reminder_popup_shown');
-    if (alreadyShown) return;
-    
-    Preferences.get({ key: 'payment_reminders' }).then(({ value }) => {
+    const initNotifications = async () => {
+      let permitted = false;
+
+      // 1. Request permissions safely
+      if (typeof LocalNotifications !== 'undefined' && LocalNotifications.checkPermissions) {
+        try {
+          const perms = await LocalNotifications.checkPermissions();
+          if (perms.display !== 'granted') {
+            const requested = await LocalNotifications.requestPermissions();
+            permitted = requested.display === 'granted';
+          } else {
+            permitted = true;
+          }
+        } catch (err) {
+          console.warn('Notification permission check failed:', err);
+        }
+      } 
+      
+      if (!permitted && 'Notification' in window) {
+        if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+          try {
+            const req = await Notification.requestPermission();
+            permitted = req === 'granted';
+          } catch {
+            // ignore failure
+          }
+        } else {
+          permitted = Notification.permission === 'granted';
+        }
+      }
+
+      // 2. Check reminders
+      const alreadyShown = sessionStorage.getItem('reminder_popup_shown');
+      if (alreadyShown) return;
+      
+      const { value } = await Preferences.get({ key: 'payment_reminders' });
       if (!value) return;
+      
       const reminders = JSON.parse(value);
       const today = new Date().getDate();
       const dueToday = reminders.filter((r: { dayOfMonth: number; enabled: boolean }) => r.enabled && r.dayOfMonth === today);
+      
       if (dueToday.length > 0) {
         setReminderPopup(dueToday);
         sessionStorage.setItem('reminder_popup_shown', 'true');
-      }
-    });
-
-    // Request native notification permissions safely
-    if (typeof LocalNotifications !== 'undefined' && LocalNotifications.checkPermissions) {
-      LocalNotifications.checkPermissions().then((perms) => {
-        if (perms.display !== 'granted') {
-          LocalNotifications.requestPermissions();
+        
+        // 3. Fire immediate System Notification (so it appears on the lock screen / notification banner)
+        if (permitted) {
+          if ('Notification' in window && Notification.permission === 'granted') {
+            dueToday.forEach((r: { name: string; amount?: number }) => {
+              new Notification("⏰ Tagihan Hari Ini!", {
+                body: `Waktunya ${r.name}${r.amount ? ` Rp ${r.amount.toLocaleString('id-ID')}` : ''}`,
+                icon: '/logo.png'
+              });
+            });
+          } else if (typeof LocalNotifications !== 'undefined') {
+            try {
+              await LocalNotifications.schedule({
+                notifications: dueToday.map((r: { name: string; amount?: number }, i: number) => ({
+                  title: "⏰ Tagihan Hari Ini!",
+                  body: `Waktunya bayar ${r.name}${r.amount ? ` Rp ${r.amount.toLocaleString('id-ID')}` : ''}`,
+                  id: new Date().getTime() + i,
+                  schedule: { at: new Date(Date.now() + 1000) },
+                  smallIcon: 'ic_stat_name',
+                }))
+              });
+            } catch(e) {
+              console.warn(e);
+            }
+          }
         }
-      }).catch(err => console.warn('Notification permission check failed:', err));
-    }
+      }
+    };
+
+    initNotifications();
   }, []);
 
   useEffect(() => {

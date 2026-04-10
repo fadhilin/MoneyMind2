@@ -62,7 +62,6 @@ const Sidebar = ({ darkMode, isOpen, onClose, onOpenModal }: SidebarProps) => {
   const navItems = [
     { name: "Beranda", icon: "house", path: "/dashboard" },
     { name: "Transaksi", icon: "assignment", path: "/transactions" },
-    { name: "Budget", icon: "monetization_on", path: "/budget" },
     { name: "Tabungan", icon: "ads_click", path: "/savings" },
     { name: "Laporan", icon: "leaderboard", path: "/reports" },
   ];
@@ -159,13 +158,15 @@ const Sidebar = ({ darkMode, isOpen, onClose, onOpenModal }: SidebarProps) => {
             </NavLink>
           ))}
 
-          <button
-            onClick={onOpenModal}
-            className={linkClass({ isActive: false })}
-          >
-            <span className="material-symbols-outlined text-[22px]">add</span>
-            <span className="text-sm font-medium">Catat Pemasukan</span>
-          </button>
+          <div className="hidden lg:block">
+            <button
+              onClick={onOpenModal}
+              className={`${linkClass({ isActive: false })} w-full`}
+            >
+              <span className="material-symbols-outlined text-[22px]">add</span>
+              <span className="text-sm font-medium">Catat Pemasukan</span>
+            </button>
+          </div>
 
           <button
             onClick={() => {

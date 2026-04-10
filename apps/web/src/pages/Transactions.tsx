@@ -112,7 +112,7 @@ const Transactions: React.FC = () => {
                           : 'bg-[#121620] text-slate-400 border-white/5 hover:bg-[#1a1f2c]'
                       }`}
                     >
-                      <span className="material-symbols-outlined text-[16px] md:text-sm">arrow_upward</span>
+                      <span className="material-symbols-outlined text-[16px] md:text-sm">arrow_downward</span>
                       Terendah
                     </button>
                     <button
@@ -123,7 +123,7 @@ const Transactions: React.FC = () => {
                           : 'bg-[#121620] text-slate-400 border-white/5 hover:bg-[#1a1f2c]'
                       }`}
                     >
-                      <span className="material-symbols-outlined text-[16px] md:text-sm">arrow_downward</span>
+                      <span className="material-symbols-outlined text-[16px] md:text-sm">arrow_upward</span>
                       Tertinggi
                     </button>
                     {sortOrder !== 'none' && (

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { useCreateTransaction } from "../hooks/useTransactions";
 import { useBudgets, useCreateBudget } from "../hooks/useBudgets";
 import { useMonthlySummary } from "../hooks/useReports";
@@ -7,6 +7,44 @@ import { useQuickTemplates } from "../hooks/useQuickTemplates";
 import type { QuickTemplate } from "../hooks/useQuickTemplates";
 import { formatCurrencyInput } from "../utils/formatters";
 import type { TransactionType } from "../types/finance";
+import { parseTransactionWithAI, parseReceiptWithAI, type ParsedReceiptItem } from "../utils/aiParser";
+
+interface SpeechRecognitionEvent {
+  resultIndex: number;
+  results: {
+    length: number;
+    [index: number]: {
+      isFinal: boolean;
+      [index: number]: { transcript: string };
+    };
+  };
+}
+
+interface SpeechRecognitionErrorEvent {
+  error: string;
+}
+
+interface SpeechRecognitionInstance {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onstart: null | (() => void);
+  onaudiostart: null | (() => void);
+  onsoundstart: null | (() => void);
+  onspeechstart: null | (() => void);
+  onspeechend: null | (() => void);
+  onnomatch: null | (() => void);
+  onresult: null | ((event: SpeechRecognitionEvent) => void);
+  onerror: null | ((event: SpeechRecognitionErrorEvent) => void);
+  onend: null | (() => void);
+  start: () => void;
+  stop: () => void;
+}
+
+type WindowWithSpeech = Window & typeof globalThis & {
+  SpeechRecognition?: new () => SpeechRecognitionInstance;
+  webkitSpeechRecognition?: new () => SpeechRecognitionInstance;
+};
 
 const categoryIcons = [
   "restaurant", "shopping_cart", "directions_car", "house", "receipt_long",
@@ -21,7 +59,7 @@ interface QuickInputProps {
   onClose: () => void;
 }
 
-type TabType = "numpad" | "template" | "voice";
+type TabType = "numpad" | "template" | "voice" | "scan";
 
 export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
   const [activeTab, setActiveTab] = useState<TabType>("numpad");
@@ -58,10 +96,22 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
   // Voice state
   const [isRecording, setIsRecording] = useState(false);
   const [voiceResult, setVoiceResult] = useState<string>("");
-  const [parsedVoice, setParsedVoice] = useState<{ amount: number; category: string } | null>(null);
+  const [parsedVoice, setParsedVoice] = useState<{
+  amount: number;
+  category: string;
+  description?: string;
+  corrected_text?: string;
+  confidence?: number;
+  } | null>(null);
   const [isEditingVoiceCategory, setIsEditingVoiceCategory] = useState(false);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const latestTranscriptRef = useRef<string>("");
+
+  // Scan state
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanItems, setScanItems] = useState<ParsedReceiptItem[]>([]);
+  const [scanError, setScanError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const resetForm = () => {
     setActiveTab("numpad");
@@ -78,13 +128,83 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
     setParsedVoice(null);
     setIsRecording(false);
     setIsEditingVoiceCategory(false);
+    setIsScanning(false);
+    setScanItems([]);
+    setScanError("");
   };
 
-  useEffect(() => {
+  // Logic for scan
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsScanning(true);
+    setScanError("");
+    setScanItems([]);
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const base64Image = reader.result as string;
+        const parsed = await parseReceiptWithAI(base64Image);
+        
+        if (parsed && parsed.length > 0) {
+           setScanItems(parsed);
+        } else {
+           setScanError("Gagal membaca struktur struk atau tidak ada item terdeteksi.");
+        }
+      } catch (err) {
+        console.error(err);
+        setScanError("Terjadi kesalahan sistem saat memproses gambar.");
+      } finally {
+        setIsScanning(false);
+        if (fileInputRef.current) {
+           fileInputRef.current.value = "";
+        }
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const saveAllScanItems = () => {
+     let successCount = 0;
+     scanItems.forEach((item) => {
+        if (item.amount > 0 && item.name.trim()) {
+           // Coba mencocokkan kategori secara case-insensitive / partial
+           const cLower = item.category.toLowerCase();
+           let matchedCat = displayCategories.find(c => c.name.toLowerCase() === cLower);
+           if (!matchedCat) {
+               matchedCat = displayCategories.find(c => c.name.toLowerCase().includes(cLower) || cLower.includes(c.name.toLowerCase()));
+           }
+           const finalCategory = matchedCat ? matchedCat.name : item.category;
+           const finalIcon = matchedCat ? matchedCat.icon : "receipt_long";
+
+           createTransaction.mutate({
+              amount: item.amount,
+              type: "expense",
+              category: finalCategory,
+              icon: finalIcon,
+              date: globalDate,
+              note: item.name
+           });
+           successCount++;
+        }
+     });
+
+     if (successCount > 0) {
+        setTimeout(() => handleClose(), 300);
+     } else {
+        alert("Tidak ada item valid untuk disimpan.");
+     }
+  };
+
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
     if (isOpen) {
       resetForm();
     }
-  }, [isOpen]);
+  }
 
   const handleClose = () => {
     resetForm();
@@ -176,7 +296,7 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
 
   // --- Voice Logic ---
   const startRecording = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognition = (window as WindowWithSpeech).SpeechRecognition || (window as WindowWithSpeech).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       alert("Browser Anda tidak mendukung Web Speech API");
       return;
@@ -208,7 +328,7 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
       setIsRecording(false);
     };
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       let currentTranscript = "";
       let isFinalFound = false;
 
@@ -225,14 +345,14 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
 
       if (isFinalFound) {
         setVoiceResult(currentTranscript);
-        parseVoiceCommand(currentTranscript);
+        parseVoiceCommand(latestTranscriptRef.current);
       } else {
         // Tampilkan teks sementara di layar
         setVoiceResult(currentTranscript + "...");
       }
     };
 
-    recognition.onerror = (event: Event | any) => {
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       setVoiceResult("Error (" + event.error + "): Modul suara gagal");
       setIsRecording(false);
     };
@@ -257,84 +377,155 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
     }
   };
 
-    const parseVoiceCommand = (text: string) => {
-      // 1. BERSIHKAN TEKS DARI SEGALA MACAM SAMPAH
-      // Safari suka masukin huruf besar, titik, koma, spasi ganda, dll.
-      let cleanText = text.toLowerCase()
-        .replace(/\./g, '') // Buang semua titik (11.000 -> 11000)
-        .replace(/,/g, '')  // Buang semua koma
-        .replace(/rupiah/g, '') // Buang kata rupiah
-        .replace(/\s+/g, ' ') // Ganti spasi ganda jadi spasi tunggal
-        .trim();
+    const parseVoiceCommand = async (text: string) => {
+  const rawText = text.replace(/\.{2,}$/g, "").trim();
 
-      // 2. KONVERSI HURUF ANGKA JADI NOMOR ASLI
-      const wordsToDigits: Record<string, string> = {
-        'nol': '0', 'satu': '1', 'dua': '2', 'tiga': '3', 'empat': '4',
-        'lima': '5', 'enam': '6', 'tujuh': '7', 'delapan': '8', 'sembilan': '9',
-        'sepuluh': '10', 'sebelas': '11', 'dua belas': '12', 'tiga belas': '13',
-        'empat belas': '14', 'lima belas': '15', 'enam belas': '16', 'tujuh belas': '17',
-        'delapan belas': '18', 'sembilan belas': '19', 'dua puluh': '20',
-        'tiga puluh': '30', 'empat puluh': '40', 'lima puluh': '50',
-        'enam puluh': '60', 'tujuh puluh': '70', 'delapan puluh': '80', 'sembilan puluh': '90'
-      };
+  if (!rawText) return;
 
-      Object.entries(wordsToDigits).forEach(([word, digit]) => {
-        const regex = new RegExp(`\\b${word}\\b`, 'g');
-        cleanText = cleanText.replace(regex, digit);
+  setVoiceResult("Memahami ucapan dengan AI...");
+
+  try {
+    // 1. Coba pakai AI dulu
+    const aiResult = await parseTransactionWithAI(rawText);
+
+    if (aiResult && aiResult.amount && aiResult.amount > 0) {
+      // Cocokkan kategori AI ke kategori yang tersedia di app
+      const aiCategoryLower = aiResult.category.toLowerCase();
+
+      let matchedCategory =
+        displayCategories.find(
+          (c) => c.name.toLowerCase() === aiCategoryLower
+        )?.name || "";
+
+      // Kalau tidak ketemu exact match, cari yang mirip
+      if (!matchedCategory) {
+        const foundPartial = displayCategories.find((c) =>
+          c.name.toLowerCase().includes(aiCategoryLower)
+        );
+        matchedCategory = foundPartial?.name || displayCategories[0]?.name || "Lainnya";
+      }
+
+      setParsedVoice({
+        amount: aiResult.amount,
+        category: matchedCategory,
+        description: aiResult.description,
+        corrected_text: aiResult.corrected_text,
+        confidence: aiResult.confidence,
       });
-      cleanText = cleanText.replace(/belas/g, "1").replace(/puluh/g, "0");
 
-      // 3. JURUS PAMUNGKAS CARI ANGKA (Sangat Ampuh untuk iOS)
-      let parsedAmount = 0;
-      
-      // Cari angka yang diikuti kata 'ribu' atau 'juta' (Contoh: 11 ribu)
-      const ribuJutaMatch = cleanText.match(/(\d+)\s*(ribu|juta)/);
-      
-      if (ribuJutaMatch) {
-        let num = parseInt(ribuJutaMatch[1], 10);
-        if (ribuJutaMatch[2] === "ribu") num *= 1000;
-        if (ribuJutaMatch[2] === "juta") num *= 1000000;
-        parsedAmount = num;
-      } else {
-        // Cari SEMUA angka yang tersisa di dalam teks secara berurutan (Contoh: 11000)
-        const numberMatches = cleanText.match(/\d+/g);
-        
-        if (numberMatches) {
-          // Gabungkan semua deretan angka yang ditemukan (kalau terpisah spasi)
-          const combinedNumbers = numberMatches.join('');
-          parsedAmount = parseInt(combinedNumbers, 10);
-          
-          // Kalau angkanya di bawah 1000, anggap itu ribuan
-          if (parsedAmount > 0 && parsedAmount < 1000) {
-            parsedAmount *= 1000; 
-          }
-        }
+      setVoiceResult(aiResult.corrected_text || rawText);
+      return;
+    }
+
+    // 2. Kalau AI gagal, fallback ke parser lokal lama
+    fallbackParseVoice(rawText);
+  } catch (error) {
+    console.error("AI voice parse failed:", error);
+
+    // 3. Jika AI error, fallback ke parser lokal
+    fallbackParseVoice(rawText);
+  }
+};
+
+const fallbackParseVoice = (text: string) => {
+  let cleanText = text.toLowerCase()
+    .replace(/\./g, '')
+    .replace(/,/g, '')
+    .replace(/rupiah/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+
+  const wordsToDigits: Record<string, string> = {
+    'nol': '0', 'satu': '1', 'dua': '2', 'tiga': '3', 'empat': '4',
+    'lima': '5', 'enam': '6', 'tujuh': '7', 'delapan': '8', 'sembilan': '9',
+    'sepuluh': '10', 'sebelas': '11', 'dua belas': '12', 'tiga belas': '13',
+    'empat belas': '14', 'lima belas': '15', 'enam belas': '16', 'tujuh belas': '17',
+    'delapan belas': '18', 'sembilan belas': '19', 'dua puluh': '20',
+    'tiga puluh': '30', 'empat puluh': '40', 'lima puluh': '50',
+    'enam puluh': '60', 'tujuh puluh': '70', 'delapan puluh': '80', 'sembilan puluh': '90'
+  };
+
+  Object.entries(wordsToDigits).forEach(([word, digit]) => {
+    const regex = new RegExp(`\\b${word}\\b`, 'g');
+    cleanText = cleanText.replace(regex, digit);
+  });
+
+  let parsedAmount = 0;
+  const ribuJutaMatch = cleanText.match(/(\d+)\s*(ribu|juta)/);
+
+  if (ribuJutaMatch) {
+    let num = parseInt(ribuJutaMatch[1], 10);
+    if (ribuJutaMatch[2] === "ribu") num *= 1000;
+    if (ribuJutaMatch[2] === "juta") num *= 1000000;
+    parsedAmount = num;
+  } else {
+    const numberMatches = cleanText.match(/\d+/g);
+    if (numberMatches) {
+      const combinedNumbers = numberMatches.join('');
+      parsedAmount = parseInt(combinedNumbers, 10);
+
+      if (parsedAmount > 0 && parsedAmount < 1000) {
+        parsedAmount *= 1000;
       }
+    }
+  }
 
-      // 4. CARI KATEGORI DENGAN AMAN
-      let matchedCategory = displayCategories[0]?.name || "Lainnya"; 
-      const categories = displayCategories.map(c => c.name.toLowerCase());
-      
-      // Coba cocokkan kata di teks dengan nama kategori yang ada
-      const found = categories.find(c => cleanText.includes(c));
-      if (found) {
-        matchedCategory = displayCategories.find(c => c.name.toLowerCase() === found)?.name || matchedCategory;
-      } else {
-        // Sinonim kategori sehari-hari
-        if (cleanText.includes("makan") || cleanText.includes("minum") || cleanText.includes("kopi") || cleanText.includes("jajan") || cleanText.includes("warteg")) {
-          matchedCategory = "Makan & Minum"; 
-        } else if (cleanText.includes("bensin") || cleanText.includes("parkir") || cleanText.includes("gojek") || cleanText.includes("grab") || cleanText.includes("tol")) {
-          matchedCategory = "Transportasi";
-        } else if (cleanText.includes("paket") || cleanText.includes("pulsa") || cleanText.includes("kuota") || cleanText.includes("internet")) {
-          // Fallback ke "Tagihan" atau kategori pertama jika tidak ketemu
-          const tagihanCat = displayCategories.find(c => c.name.includes("Tagihan") || c.name.includes("Lain"));
-          matchedCategory = tagihanCat?.name || displayCategories[0]?.name || "Lainnya";
-        }
-      }
+  let matchedCategory = displayCategories[0]?.name || "Lainnya";
+  const categories = displayCategories.map(c => c.name.toLowerCase());
 
-      // 5. SET HASIL AKHIR
-      setParsedVoice({ amount: parsedAmount || 0, category: matchedCategory });
-    };
+  const found = categories.find(c => cleanText.includes(c));
+  if (found) {
+    matchedCategory =
+      displayCategories.find(c => c.name.toLowerCase() === found)?.name ||
+      matchedCategory;
+  } else {
+    if (
+      cleanText.includes("makan") ||
+      cleanText.includes("minum") ||
+      cleanText.includes("kopi") ||
+      cleanText.includes("jajan") ||
+      cleanText.includes("warteg")
+    ) {
+      matchedCategory = displayCategories.find(c =>
+        c.name.toLowerCase().includes("makan") ||
+        c.name.toLowerCase().includes("minum")
+      )?.name || matchedCategory;
+    } else if (
+      cleanText.includes("bensin") ||
+      cleanText.includes("parkir") ||
+      cleanText.includes("gojek") ||
+      cleanText.includes("grab") ||
+      cleanText.includes("tol")
+    ) {
+      matchedCategory = displayCategories.find(c =>
+        c.name.toLowerCase().includes("transport")
+      )?.name || matchedCategory;
+    } else if (
+      cleanText.includes("paket") ||
+      cleanText.includes("pulsa") ||
+      cleanText.includes("kuota") ||
+      cleanText.includes("internet")
+    ) {
+      matchedCategory = displayCategories.find(c =>
+        c.name.toLowerCase().includes("tagih") ||
+        c.name.toLowerCase().includes("internet")
+      )?.name || matchedCategory;
+    }
+  }
+
+const aiNote = text
+
+setParsedVoice({
+  amount: parsedAmount || 0,
+  category: matchedCategory,
+  description: aiNote,
+  corrected_text: aiNote,
+  confidence: 0.5,
+});
+
+  setVoiceResult(text);
+};
 
 
   return (
@@ -345,7 +536,7 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
       >
         {/* Header Tab */}
         <div className="flex p-2 bg-slate-100 dark:bg-black/20 gap-2 shrink-0">
-          {(["numpad", "template", "voice"] as TabType[]).map((t) => (
+          {(["numpad", "template", "voice", "scan"] as TabType[]).map((t) => (
             <button
               key={t}
               onClick={() => setActiveTab(t)}
@@ -355,7 +546,7 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
                   : "text-slate-500 hover:bg-slate-200 dark:hover:bg-white/5"
               }`}
             >
-              {t === "numpad" ? "Numeric" : t === "template" ? "Template" : "Suara"}
+              {t === "numpad" ? "Numeric" : t === "template" ? "Template" : t === "voice" ? "Suara" : "Scan"}
             </button>
           ))}
           <button onClick={handleClose} className="p-3 text-slate-500 hover:text-rose-500 transition-colors">
@@ -701,12 +892,144 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
                         <button 
                             onClick={() => {
                               // Bersihkan trailing "..." dari voice result sebelum simpan
-                              const cleanNote = voiceResult.replace(/\.{2,}$/g, '').trim();
-                              handleSaveTransaction(parsedVoice.amount, "expense", parsedVoice.category, displayCategories.find(c => c.name === parsedVoice.category)?.icon || "category", cleanNote);
+const cleanNote =
+  parsedVoice.description?.trim() ||
+  parsedVoice.corrected_text?.trim() ||
+  voiceResult.replace(/\.{2,}$/g, "").trim();
+
+handleSaveTransaction(
+  parsedVoice.amount,
+  "expense",
+  parsedVoice.category,
+  displayCategories.find(c => c.name === parsedVoice.category)?.icon || "category",
+  cleanNote
+);
                             }}
                             className="w-full py-3 bg-emerald-500 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-600 active:scale-95 transition-all"
                         >
                             Simpan Sekarang
+                        </button>
+                    </div>
+                )}
+            </div>
+          )}
+
+          {activeTab === "scan" && (
+            <div className="p-6 flex flex-col h-full animate-in fade-in">
+                <div className="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 className="text-xl font-black text-primary mb-1">Scan Struk</h2>
+                        <p className="text-slate-500 text-xs font-medium">Otomatis deteksi barang & harga</p>
+                    </div>
+                    <button 
+                       onClick={() => fileInputRef.current?.click()}
+                       disabled={isScanning}
+                       className="bg-primary/10 text-primary p-3 rounded-full hover:bg-primary/20 transition-all disabled:opacity-50 relative overflow-hidden group"
+                    >
+                       <span className="material-symbols-outlined relative z-10">photo_camera</span>
+                       <div className="absolute inset-0 bg-primary/20 translate-y-full group-hover:translate-y-0 transition-transform"></div>
+                    </button>
+                    <input 
+                       type="file" 
+                       accept="image/*" 
+                       capture="environment" 
+                       ref={fileInputRef} 
+                       hidden 
+                       onChange={handleImageUpload} 
+                    />
+                </div>
+
+                {isScanning && (
+                   <div className="flex-1 flex flex-col items-center justify-center py-10 opacity-70">
+                      <span className="material-symbols-outlined text-4xl animate-spin text-primary mb-4">document_scanner</span>
+                      <p className="text-sm font-bold animate-pulse text-slate-600 dark:text-slate-400">AI memproses gambar...</p>
+                   </div>
+                )}
+
+                {!isScanning && scanError && (
+                   <div className="p-4 bg-rose-50 dark:bg-rose-500/10 text-rose-600 rounded-xl mb-4 text-center text-sm font-bold border border-rose-200 dark:border-rose-500/30">
+                      {scanError}
+                   </div>
+                )}
+
+                {!isScanning && scanItems.length === 0 && !scanError && (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center opacity-50 py-10">
+                        <span className="material-symbols-outlined text-6xl mb-4">receipt_long</span>
+                        <p className="font-bold">Ketuk ikon kamera di atas</p>
+                        <p className="text-xs mt-1 px-4 max-w-[250px]">Ambil foto struk belanja yang jelas agar mudah dibaca oleh AI.</p>
+                    </div>
+                )}
+
+                {!isScanning && scanItems.length > 0 && (
+                    <div className="flex flex-col h-full animate-in slide-in-from-bottom-4">
+                        <div className="flex justify-between items-center mb-3 px-1">
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{scanItems.length} Item Terdeteksi</span>
+                            <span className="text-base font-black text-primary">
+                                Rp {formatCurrencyInput(scanItems.reduce((acc, curr) => acc + curr.amount, 0))}
+                            </span>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto space-y-2 mb-4 custom-scrollbar pr-1 max-h-[35vh]">
+                            {scanItems.map((item, idx) => (
+                                <div key={idx} className="flex flex-col bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl p-3 relative group transition-all shrink-0 hover:border-primary/50">
+                                    <div className="flex justify-between items-start mb-2 pr-6 gap-2">
+                                        <input 
+                                            value={item.name} 
+                                            onChange={(e) => {
+                                                const newItems = [...scanItems];
+                                                newItems[idx].name = e.target.value;
+                                                setScanItems(newItems);
+                                            }}
+                                            placeholder="Nama barang..."
+                                            className="font-bold text-sm bg-transparent outline-none border-b border-transparent focus:border-primary w-full text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
+                                        />
+                                        <input 
+                                            type="number"
+                                            value={item.amount || ""} 
+                                            onChange={(e) => {
+                                                const newItems = [...scanItems];
+                                                newItems[idx].amount = parseInt(e.target.value) || 0;
+                                                setScanItems(newItems);
+                                            }}
+                                            className="font-black text-rose-500 bg-transparent text-right outline-none min-w-[80px] border-b border-transparent focus:border-rose-500"
+                                        />
+                                    </div>
+                                    <select
+                                        value={item.category.toLowerCase()}
+                                        onChange={(e) => {
+                                            const newItems = [...scanItems];
+                                            newItems[idx].category = e.target.value;
+                                            setScanItems(newItems);
+                                        }}
+                                        className="text-[11px] font-bold text-slate-500 bg-slate-50 dark:bg-black/30 p-1.5 rounded-lg outline-none cursor-pointer hover:bg-slate-100 dark:hover:bg-black/50"
+                                    >
+                                        <option value="lainnya">Kategori: Lainnya</option>
+                                        {displayCategories.map(c => (
+                                            <option key={c.name} value={c.name.toLowerCase()}>{c.name}</option>
+                                        ))}
+                                    </select>
+
+                                    <button 
+                                        onClick={() => {
+                                            const newItems = scanItems.filter((_, i) => i !== idx);
+                                            setScanItems(newItems);
+                                        }}
+                                        className="absolute top-2 right-2 text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 bg-rose-50 dark:bg-rose-500/20 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-500/40"
+                                        title="Hapus item"
+                                    >
+                                        <span className="material-symbols-outlined text-[16px] block">delete</span>
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+
+                        <button 
+                            onClick={saveAllScanItems}
+                            className="w-full py-3.5 bg-primary text-white font-bold rounded-xl shadow-lg hover:brightness-110 active:scale-95 transition-all text-center flex justify-center items-center gap-2 mt-auto disabled:opacity-50 disabled:active:scale-100"
+                            disabled={scanItems.length === 0}
+                        >
+                            <span className="material-symbols-outlined text-[20px]">fact_check</span>
+                            Simpan {scanItems.length} Pengeluaran
                         </button>
                     </div>
                 )}
