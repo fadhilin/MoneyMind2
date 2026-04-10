@@ -145,8 +145,42 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
     const reader = new FileReader();
     reader.onload = async () => {
       try {
-        const base64Image = reader.result as string;
-        const parsed = await parseReceiptWithAI(base64Image);
+        const rawBase64 = reader.result as string;
+
+        // Compress image using Canvas
+        const img = new Image();
+        img.src = rawBase64;
+        await new Promise((resolve, reject) => {
+           img.onload = resolve;
+           img.onerror = reject;
+        });
+
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 1000;
+        const MAX_HEIGHT = 1000;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        // Output as highly compressed JPEG
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+
+        const parsed = await parseReceiptWithAI(compressedBase64);
         
         if (parsed && parsed.length > 0) {
            setScanItems(parsed);
@@ -155,7 +189,7 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
         }
       } catch (err) {
         console.error(err);
-        setScanError("Terjadi kesalahan sistem saat memproses gambar.");
+        setScanError("Terjadi kesalahan sistem kompresi saat memproses gambar.");
       } finally {
         setIsScanning(false);
         if (fileInputRef.current) {
@@ -924,15 +958,15 @@ handleSaveTransaction(
                     <button 
                        onClick={() => fileInputRef.current?.click()}
                        disabled={isScanning}
-                       className="bg-primary/10 text-primary p-3 rounded-full hover:bg-primary/20 transition-all disabled:opacity-50 relative overflow-hidden group"
+                       className="bg-primary/10 text-primary p-3 rounded-full hover:bg-primary/20 transition-all disabled:opacity-50 relative overflow-hidden group flex items-center gap-2"
                     >
                        <span className="material-symbols-outlined relative z-10">photo_camera</span>
+                       <span className="text-sm font-bold relative z-10 pr-2">Kamera / Galeri</span>
                        <div className="absolute inset-0 bg-primary/20 translate-y-full group-hover:translate-y-0 transition-transform"></div>
                     </button>
                     <input 
                        type="file" 
                        accept="image/*" 
-                       capture="environment" 
                        ref={fileInputRef} 
                        hidden 
                        onChange={handleImageUpload} 
