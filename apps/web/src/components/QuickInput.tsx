@@ -76,6 +76,9 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
   const globalBalance = summary?.globalBalance ?? 0;
   const safetySpend = summary?.safetySpend ?? 0;
 
+  const todayStr = new Date().toLocaleDateString("en-CA");
+  const [inputDate, setInputDate] = useState<string>(todayStr);
+
   // Numpad state
   const type: TransactionType = "expense";
   const [amountStr, setAmountStr] = useState<string>("0");
@@ -131,6 +134,7 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
     setIsScanning(false);
     setScanItems([]);
     setScanError("");
+    setInputDate(new Date().toLocaleDateString("en-CA"));
   };
 
   // Logic for scan
@@ -218,7 +222,7 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
               type: "expense",
               category: finalCategory,
               icon: finalIcon,
-              date: globalDate,
+              date: inputDate,
               note: item.name
            });
            successCount++;
@@ -258,7 +262,8 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
     txType: TransactionType,
     txCategory: string,
     txIcon: string,
-    txNote: string = ""
+    txNote: string = "",
+    txDate: string = inputDate
   ) => {
     if (txAmount <= 0) return alert("Nominal tidak valid");
 
@@ -279,7 +284,7 @@ export default function QuickInput({ isOpen, onClose }: QuickInputProps) {
         type: txType,
         category: txCategory,
         icon: txIcon,
-        date: globalDate,
+        date: txDate,
         note: txNote || txCategory,
       },
       {
@@ -777,7 +782,16 @@ setParsedVoice({
                         }
                       }}
                     />
-                    <p className="text-xs text-slate-400 italic px-1">Tulis nama pengeluaranmu agar mudah diingat di riwayat</p>
+                    <div className="flex flex-col gap-1.5 mt-2">
+                       <label className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">Tanggal Transaksi</label>
+                       <input 
+                         type="date"
+                         value={inputDate}
+                         max={todayStr}
+                         onChange={(e) => setInputDate(e.target.value)}
+                         className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-lg font-bold focus:border-primary outline-none transition-all text-black dark:text-white"
+                       />
+                    </div>
                   </div>
 
                   <button
@@ -797,11 +811,23 @@ setParsedVoice({
 
           {activeTab === "template" && (
             <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                 <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Template Anda</h3>
-                 <button onClick={() => { setActiveTab("numpad"); setIsAddingTemplate(true); setStep("amount"); }} className="text-primary font-bold flex items-center gap-1 text-sm bg-primary/10 px-3 py-1 rounded-full">
-                     <span className="material-symbols-outlined text-base">add</span> Baru
-                 </button>
+              <div className="flex flex-col gap-4 mb-6">
+                 <div className="flex justify-between items-center">
+                    <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Template Anda</h3>
+                    <button onClick={() => { setActiveTab("numpad"); setIsAddingTemplate(true); setStep("amount"); }} className="text-primary font-bold flex items-center gap-1 text-sm bg-primary/10 px-3 py-1 rounded-full">
+                        <span className="material-symbols-outlined text-base">add</span> Baru
+                    </button>
+                 </div>
+                 <div className="flex items-center justify-between bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-3 rounded-xl">
+                    <span className="text-xs font-bold text-slate-500 uppercase">Tanggal Input</span>
+                    <input 
+                       type="date"
+                       value={inputDate}
+                       max={todayStr}
+                       onChange={(e) => setInputDate(e.target.value)}
+                       className="bg-transparent font-bold text-sm outline-none text-black dark:text-white cursor-pointer"
+                    />
+                 </div>
               </div>
 
               {templates.length === 0 ? (
@@ -931,7 +957,8 @@ handleSaveTransaction(
   "expense",
   parsedVoice.category,
   displayCategories.find(c => c.name === parsedVoice.category)?.icon || "category",
-  cleanNote
+  cleanNote,
+  todayStr
 );
                             }}
                             className="w-full py-3 bg-emerald-500 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-600 active:scale-95 transition-all"
@@ -945,10 +972,19 @@ handleSaveTransaction(
 
           {activeTab === "scan" && (
             <div className="p-6 flex flex-col h-full animate-in fade-in">
-                <div className="flex justify-between items-center mb-6">
-                    <div>
-                        <h2 className="text-xl font-black text-primary mb-1">Scan Struk</h2>
-                        <p className="text-slate-500 text-xs font-medium">Otomatis deteksi barang & harga</p>
+                <div className="flex justify-between items-center">
+                    <div className="flex-1">
+                        <div className="justify-between items-center mb-15">
+                           <h2 className="text-xl font-black text-primary whitespace-nowrap">Scan Struk</h2>
+                           <p className="text-slate-500 text-xs font-medium whitespace-nowrap">Masukkan Tanggal Transaksi</p>
+                           <input 
+                              type="date"
+                              value={inputDate}
+                              max={todayStr}
+                              onChange={(e) => setInputDate(e.target.value)}
+                              className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg mr-2 mt-3 px-2 py-1 text-xs font-bold outline-none text-black dark:text-white cursor-pointer"
+                           />
+                        </div>
                     </div>
                     <button 
                        onClick={() => fileInputRef.current?.click()}
@@ -956,7 +992,7 @@ handleSaveTransaction(
                        className="bg-primary/10 text-primary p-3 rounded-full hover:bg-primary/20 transition-all disabled:opacity-50 relative overflow-hidden group flex items-center gap-2"
                     >
                        <span className="material-symbols-outlined relative z-10">photo_camera</span>
-                       <span className="text-sm font-bold relative z-10 pr-2">Kamera / Galeri</span>
+                       <span className="text-sm font-bold relative z-10 pr-2 whitespace-nowrap">Kamera / Galeri</span>
                        <div className="absolute inset-0 bg-primary/20 translate-y-full group-hover:translate-y-0 transition-transform"></div>
                     </button>
                     <input 
